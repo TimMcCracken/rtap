@@ -994,7 +994,7 @@ func readSnapshotVarUTF8(tbl * table, snapshot_index uint16, col_index uint16, f
 // -----------------------------------------------------------------------------
 // readSnapshotBlobUTF8()
 // -----------------------------------------------------------------------------
- unc readSnapshotBlobUTF8(tbl * table, snapshot_index  uint16, col_index uint16, file * os.File) error {
+ func readSnapshotBlobUTF8(tbl * table, snapshot_index  uint16, col_index uint16, file * os.File) error {
 
 	dest, ok 	:= tbl.columns[col_index].snapshots[snapshot_index].([]string)
 	if ok == false {

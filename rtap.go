@@ -10,6 +10,7 @@ import (
 //	"runtime"
 	"time"
 
+	"rtap/metronome"
 	"rtap/rtdsms"
 	"rtap/dac/http_client"
 )
@@ -20,6 +21,9 @@ import (
 func main() {
 
 
+	metronome.Metronome()
+
+	os.Exit(0)
 
 
 
