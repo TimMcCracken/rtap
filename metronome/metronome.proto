@@ -1,0 +1,51 @@
+
+
+
+// command line to generate this file: protoc -I=. --go_out=. metronome.proto
+
+
+syntax = "proto3";
+
+package metronome;
+
+//import "github.com/golang/protobuf/ptypes/timestamp";
+
+option go_package = "./metronome.pb";
+
+message tick {
+    int32   second  = 1;
+    int32   minute  = 2;
+    int32   hour    = 3;
+
+    int32   Seconda_1	= 16; 
+    int32   Seconda_2	= 17;
+    int32   Seconda_3	= 18;
+	int32   Seconda_4	= 19;
+    int32   Seconda_5	= 20;
+	int32   Seconda_6	= 21;
+    int32   Seconda_10	= 22;
+	int32   Seconda_12	= 23;
+    int32   Seconda_15	= 24;
+	int32   Seconda_20	= 25;
+    int32   Seconda_30	= 26;
+
+    int32   Minutes_1	= 27;
+	int32   Minutes_2	= 28;
+    int32   Minutes_3	= 29;
+	int32   Minutes_4	= 30;
+    int32   Minutes_5	= 31;
+	int32   Minutes_6	= 32;
+	int32   Minutes_10	= 33;
+	int32   Minutes_12	= 34;
+	int32   Minutes_15	= 35;
+	int32   Minutes_20	= 36;
+	int32   Minutes_30	= 37;
+
+	int32   Hours_0		= 38;
+	int32   Hours_1		= 39;
+	int32   Hours_2		= 40;
+	int32   Hours_3		= 41;
+	int32   Hours_4		= 42;
+	int32   Hours_5		= 43;
+	int32   Hours_6		= 44;
+}

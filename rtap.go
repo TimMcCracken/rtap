@@ -10,6 +10,7 @@ import (
 //	"runtime"
 	"time"
 
+	mq "rtap/message_q"
 	"rtap/metronome"
 	"rtap/rtdsms"
 	"rtap/dac/http_client"
@@ -20,6 +21,9 @@ import (
 
 func main() {
 
+	mq.Start()
+
+	mq.Send("ToHellAndBack", nil)
 
 	metronome.Metronome()
 

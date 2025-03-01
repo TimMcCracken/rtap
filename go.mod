@@ -1,6 +1,8 @@
 module rtap
 
-go 1.19
+go 1.21
+
+toolchain go1.23.4
 
 require (
 	github.com/creack/goselect v0.1.2 // indirect
@@ -20,6 +22,7 @@ require (
 	go.bug.st/serial v1.5.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gorm.io/driver/sqlite v1.5.7 // indirect
 	gorm.io/gorm v1.25.12 // indirect
 	modernc.org/libc v1.22.5 // indirect

@@ -17,6 +17,7 @@ package metronome
 import (
 	"fmt"
 	"time"
+	pb "rtap/metronome/metronome.pb"
 )
 
 
@@ -26,7 +27,7 @@ func init() {
 
 
 
-
+/*
 type Offsets struct{
 	Seconda_1	int 
 	Seconda_2	int 
@@ -77,7 +78,7 @@ type Tic struct{
 
 	Offsets Offsets
 }
-
+*/
 
 
 
@@ -85,7 +86,7 @@ type Tic struct{
 
 func Metronome() {
 
-	var tic Tic
+	var pb_tick pb.Tick
 
 	now := time.Now()
 
@@ -97,48 +98,41 @@ func Metronome() {
 
 	for {
 
-		now := time.Now()
-		fmt.Printf("%v\n", now)
+		second	:= int32(now.Second())
+		minute	:= int32(now.Minute())
+		hour 	:= int32(now.Hour())
 
-		second := now.Second()
-		minute := now.Minute()
-		hour := now.Hour()
-
-		tic.Local = now
-		tic.UTC = now.UTC()
-		tic.IsDST = now.IsDST()
-		tic.Second = second
-		tic.Minute = minute
-		tic.Hour = hour
+		pb_tick.Second = int32(second)
+		pb_tick.Minute = int32(minute)
+		pb_tick.Hour = int32(hour)
 	
 
 		// calculate the offsetts
-		tic.Offsets.Seconda_1 = 0
-		tic.Offsets.Seconda_2 = second % 2
-		tic.Offsets.Seconda_3 = second % 3
-		tic.Offsets.Seconda_4 = second % 4
-		tic.Offsets.Seconda_5 = second % 5
-		tic.Offsets.Seconda_6 = second % 6
-		tic.Offsets.Seconda_10 = second % 10
-		tic.Offsets.Seconda_12 = second % 12
-		tic.Offsets.Seconda_15 = second % 15
-		tic.Offsets.Seconda_20 = second % 20
-		tic.Offsets.Seconda_30 = second % 30
+		pb_tick.Seconda_2 = second % 2
+		pb_tick.Seconda_3 = second % 3
+		pb_tick.Seconda_4 = second % 4
+		pb_tick.Seconda_5 = second % 5
+		pb_tick.Seconda_6 = second % 6
+		pb_tick.Seconda_10 = second % 10
+		pb_tick.Seconda_12 = second % 12
+		pb_tick.Seconda_15 = second % 15
+		pb_tick.Seconda_20 = second % 20
+		pb_tick.Seconda_30 = second % 30
 		
-		tic.Offsets.Minutes_1 = ((minute * 60) + second) % 60
-		tic.Offsets.Minutes_2 = ((minute * 60) + second) % 120
-		tic.Offsets.Minutes_3 = ((minute * 60) + second) % 180
-		tic.Offsets.Minutes_4 = ((minute * 60) + second) % 240
-		tic.Offsets.Minutes_5 = ((minute * 60) + second) % 300
+		pb_tick.Minutes_1 = ((minute * 60) + second) % 60
+		pb_tick.Minutes_2 = ((minute * 60) + second) % 120
+		pb_tick.Minutes_3 = ((minute * 60) + second) % 180
+		pb_tick.Minutes_4 = ((minute * 60) + second) % 240
+		pb_tick.Minutes_5 = ((minute * 60) + second) % 300
 	
-		tic.Offsets.Minutes_6 = ((minute * 60) + second) % 360
-		tic.Offsets.Minutes_10 = ((minute * 60) + second) % 600
-		tic.Offsets.Minutes_12 = ((minute * 60) + second) % 720
-		tic.Offsets.Minutes_15 = ((minute * 60) + second) % 900
-		tic.Offsets.Minutes_20 = ((minute * 60) + second) % 1200
-		tic.Offsets.Minutes_30 = ((minute * 60) + second) % 1800
+		pb_tick.Minutes_6 = ((minute * 60) + second) % 360
+		pb_tick.Minutes_10 = ((minute * 60) + second) % 600
+		pb_tick.Minutes_12 = ((minute * 60) + second) % 720
+		pb_tick.Minutes_15 = ((minute * 60) + second) % 900
+		pb_tick.Minutes_20 = ((minute * 60) + second) % 1200
+		pb_tick.Minutes_30 = ((minute * 60) + second) % 1800
 		
-        fmt.Printf("%4d %4d %4d %4d %4d\n", tic.Offsets.Minutes_1, tic.Offsets.Minutes_2,  tic.Offsets.Minutes_3, tic.Offsets.Minutes_4, tic.Offsets.Minutes_5,)
+     //   fmt.Printf("%4d %4d %4d %4d %4d\n", pb_tick.Minutes_1, pb_tick.Minutes_2,  pb_tick.Minutes_3, pb_tick.Minutes_4, pb_tick.Minutes_5,)
 		
 		soon := now.Add(1 * time.Second)
 		soon_rounded := soon.Round(time.Second)
