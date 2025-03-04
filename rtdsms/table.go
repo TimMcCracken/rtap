@@ -9,7 +9,7 @@ import (
 //		"regexp"
 //		"runtime"
 	"github.com/glebarez/sqlite"
-"time"
+	"time"
 )
 
 
@@ -22,27 +22,27 @@ import (
 Table
 -----------------------------------------------------------------------------*/
 type table struct {
-	descriptor		*table_descriptor
+	descriptor		*TableDescriptor
 //	path			string
-	last_select		time.Time
-	last_insert		time.Time
-	last_update		time.Time
-	last_delete		time.Time
-	select_counter	uint64
-	insert_counter	uint64
-	update_counter	uint64
-	delete_counter	uint64
-	rows_empty		uint64
-	row_dirty		[]bool
-	row_empty		[]bool
+	lastSelect		time.Time
+	lastInsert		time.Time
+	lastUpdate		time.Time
+	lastDelete		time.Time
+	selectCounter	uint64
+	insertCounter	uint64
+	updateCounter	uint64
+	deleteCounter	uint64
+	rowsEmpty		uint64
+	rowDirty		[]bool
+	rowEmpty		[]bool
 	columns			[]*column
 
 	// The following fields provide a doubly-linked list of all the empty rows
 	// in the table
-	first_empty_row			uint64		// list head
-	last_empty_row			uint64		// list tail
-	next_empty_row			[]uint64	// one entry per row
-	prev_empty_row			[]uint64	// one entry per row
+	firstEmptyRow			uint64		// list head
+	lastEmptyRow			uint64		// list tail
+	nextEmptyRow			[]uint64	// one entry per row
+	prevEmptyRow			[]uint64	// one entry per row
 
 }
 
@@ -53,12 +53,12 @@ func (table *table) construct (filename string)  error {
 //				table.descriptor.realm_name, 
 //				table.descriptor.domain_name, 
 //				table.descriptor.datastore_name,
-//				table.descriptor.schema_name,
-//				table.descriptor.table_name)
+//				table.descriptor.schemaName,
+//				table.descriptor.Table_name)
 
 
-	if table.descriptor.columns_map == nil {
-		table.descriptor.columns_map = make(map[string]uint16)
+	if table.descriptor.columnsMap == nil {
+		table.descriptor.columnsMap = make(map[string]uint16)
 	}
 
 	// ------------------------------------------------------------------------
@@ -79,7 +79,7 @@ func (table *table) construct (filename string)  error {
 	// ------------------------------------------------------------------------
 	var domain_id	int64
 	result := db.Raw("SELECT domain_id FROM domains where domain_name = ?", 
-					table.descriptor.domain_name).Scan(&domain_id)
+					table.descriptor.domainName).Scan(&domain_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -89,7 +89,7 @@ func (table *table) construct (filename string)  error {
 	// ------------------------------------------------------------------------
 	var datastore_id	int64
 	result = db.Raw("SELECT datastore_id FROM datastores WHERE domain_id = ? AND datastore_name = ?", 
-					domain_id, table.descriptor.datastore_name).Scan(&datastore_id)
+					domain_id, table.descriptor.datastoreName).Scan(&datastore_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -110,7 +110,7 @@ func (table *table) construct (filename string)  error {
 	// ------------------------------------------------------------------------
 	var schema_id	int64
 	result = db.Raw("SELECT schema_id FROM schemas WHERE domain_id = ? AND datastore_id = ? AND schema_name = ?", 
-					domain_id, datastore_id, table.descriptor.schema_name).Scan(&schema_id)
+					domain_id, datastore_id, table.descriptor.schemaName).Scan(&schema_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -122,30 +122,30 @@ func (table *table) construct (filename string)  error {
 	result = db.Raw("SELECT table_id FROM tables WHERE domain_id = ? AND " + 
 					"datastore_id = ? AND schema_id = ? AND table_name = ?", 
 					domain_id, datastore_id, schema_id,
-					table.descriptor.table_name).Scan(&table_id)
+					table.descriptor.tableName).Scan(&table_id)
 	if result.Error != nil {
 		return result.Error
 	}
 
-	table.row_dirty 		= make([]bool, table.descriptor.total_rows, table.descriptor.total_rows)
-	table.row_empty 		= make([]bool, table.descriptor.total_rows, table.descriptor.total_rows)
-	table.rows_empty		= table.descriptor.total_rows
-	table.next_empty_row 	= make([]uint64, table.descriptor.total_rows, table.descriptor.total_rows)
-	table.prev_empty_row 	= make([]uint64, table.descriptor.total_rows, table.descriptor.total_rows)
+	table.rowDirty 		= make([]bool, table.descriptor.totalRows, table.descriptor.totalRows)
+	table.rowEmpty 		= make([]bool, table.descriptor.totalRows, table.descriptor.totalRows)
+	table.rowsEmpty		= table.descriptor.totalRows
+	table.nextEmptyRow 	= make([]uint64, table.descriptor.totalRows, table.descriptor.totalRows)
+	table.prevEmptyRow 	= make([]uint64, table.descriptor.totalRows, table.descriptor.totalRows)
 	
-	table.first_empty_row = 0	// not really necessary
-	table.last_empty_row = table.descriptor.total_rows -1
+	table.firstEmptyRow = 0	// not really necessary
+	table.lastEmptyRow = table.descriptor.totalRows -1
 
-	for i := uint64(0) ; i < table.descriptor.total_rows; i++ {
-		table.next_empty_row[i] = i + 1
-		table.prev_empty_row[i] = math.MaxUint64
+	for i := uint64(0) ; i < table.descriptor.totalRows; i++ {
+		table.nextEmptyRow[i] = i + 1
+		table.prevEmptyRow[i] = math.MaxUint64
 	}
-	table.next_empty_row[table.descriptor.total_rows - 1] = math.MaxUint64
+	table.nextEmptyRow[table.descriptor.totalRows - 1] = math.MaxUint64
 
 
 	// set all rows to 'empty = true'
-	for i := uint64(0); i < table.descriptor.total_rows; i++ {
-		table.row_empty[i] = true
+	for i := uint64(0); i < table.descriptor.totalRows; i++ {
+		table.rowEmpty[i] = true
 	}
 
 	// ------------------------------------------------------------------------
@@ -220,7 +220,7 @@ type column struct {
 			if err != nil {
 				return fmt.Errorf("Error constructing column: [%v]\n", err)
 			}
-			table.descriptor.column_descriptors = append(table.descriptor.column_descriptors, cd)
+			table.descriptor.ColumnDescriptors = append(table.descriptor.ColumnDescriptors, cd)
 
 			var data any 
 			var snapshots []any = make([]any, snapshot_count)
@@ -228,22 +228,22 @@ type column struct {
 
 			switch (type_name) {
 			case "varUTF8":
-				data = make([]string, table.descriptor.total_rows, table.descriptor.total_rows)
+				data = make([]string, table.descriptor.totalRows, table.descriptor.totalRows)
 				for i := 0; i < snapshot_count; i++  {
-					snapshots[i] = make([]string, table.descriptor.total_rows, table.descriptor.total_rows)
+					snapshots[i] = make([]string, table.descriptor.totalRows, table.descriptor.totalRows)
 				} 
 
 		
 			case "int64": // TODO: Add parameters
-				data = make([]int64, table.descriptor.total_rows, table.descriptor.total_rows)
+				data = make([]int64, table.descriptor.totalRows, table.descriptor.totalRows)
 				for i := 0; i < snapshot_count; i++  {
-					snapshots[i] = make([]int64, table.descriptor.total_rows, table.descriptor.total_rows)
+					snapshots[i] = make([]int64, table.descriptor.totalRows, table.descriptor.totalRows)
 				} 
 
 			case "float64": // TODO: Add parameters
-				data = make([]float64, table.descriptor.total_rows, table.descriptor.total_rows)
+				data = make([]float64, table.descriptor.totalRows, table.descriptor.totalRows)
 				for i := 0; i < snapshot_count; i++  {
-					snapshots[i] = make([]float64, table.descriptor.total_rows, table.descriptor.total_rows)
+					snapshots[i] = make([]float64, table.descriptor.totalRows, table.descriptor.totalRows)
 				} 
 
 			}
@@ -257,10 +257,10 @@ type column struct {
 				column.index = make(map[string]uint64)					
 			}
 			
-			table.descriptor.columns_map[column_name] = uint16(len(table.columns))
+			table.descriptor.columnsMap[column_name] = uint16(len(table.columns))
 			table.columns = append(table.columns, &column)
 
-//			fmt.Printf("Columns: %v\n", len(table.descriptor.column_descriptors))
+//			fmt.Printf("Columns: %v\n", len(table.descriptor.Column_descriptors))
 		}
 	}
 	return nil
@@ -273,7 +273,7 @@ type column struct {
 func (tbl *table) PrintColumnDescriptors(){
 
 	fmt.Println("")
-	for i, col_desc := range tbl.descriptor.column_descriptors {
+	for i, col_desc := range tbl.descriptor.Column_descriptors {
 		fmt.Printf(" %03d %16s %-8s\n", i, col_desc.name, col_desc.typeName)
 	}
 	fmt.Println("")

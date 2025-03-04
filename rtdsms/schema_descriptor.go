@@ -7,9 +7,9 @@ import (
 
 
 type schemaDescriptor struct {
-	realm_name	string
-	domain_name	string
-	datastore_name	string
-	schema_name	string
+	realmName	string
+	domainName	string
+	datastoreName	string
+	schemaName	string
 //	path	string
 }

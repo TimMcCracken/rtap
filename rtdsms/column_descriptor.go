@@ -78,24 +78,24 @@ ColumnDescriptor  stores the definitions of a columns.
 
 type ColumnDescriptor struct {
 	name			string
-	type_name		string
+	typeName		string
 	length			uint64
-	type_constant	uint16
-	not_null		bool
+	typeConstant	uint16
+	notNull			bool
 	unique			bool
 	indexed 		bool
-	no_persist 		bool	// doesn't have to be written to disk (calculated or derived)
+	noPersist 		bool	// doesn't have to be written to disk (calculated or derived)
 	config 			bool 	// only needs to be written to disk if changed
-	default_value	string
+	defaultValue	string
 	regex			string  // a regex string to validate against
 	check			string	// Lua script
-	min_length		uint64
-	min_int			int64
-	max_int	 		int64
-	min_uint		uint64
-	max_uint	 	uint64
-	min_float		float64
-	max_float 		float64
+	minLength		uint64
+	minInt			int64
+	maxInt	 		int64
+	minUint			uint64
+	maxUint	 		uint64
+	minFloat		float64
+	maxFloat 		float64
 }
 
 
@@ -119,17 +119,17 @@ func NewColumnDescriptor(name string, type_name string, options uint64, params .
 	cd := new(ColumnDescriptor)
 
 	cd.name 		= name
-	cd.type_name 	= type_name
-	cd.min_int	 	= math.MinInt64
-	cd.max_int		= math.MaxInt64
-	cd.min_uint	 	= 0
-	cd.max_uint		= math.MaxUint64
-	cd.min_float	= math.SmallestNonzeroFloat64
-	cd.max_float 	= math.MaxFloat64
+	cd.typeName 	= type_name
+	cd.minInt	 	= math.MinInt64
+	cd.maxInt		= math.MaxInt64
+	cd.minUint	 	= 0
+	cd.maxUint		= math.MaxUint64
+	cd.minFloat		= math.SmallestNonzeroFloat64
+	cd.maxFloat 	= math.MaxFloat64
 
 	// TODOL decode options and set the bits
 	if options & NOT_NULL > 0 {
-		cd.not_null = true;
+		cd.notNull = true;
 	}
 
 	if options & UNIQUE > 0 {
@@ -137,19 +137,19 @@ func NewColumnDescriptor(name string, type_name string, options uint64, params .
 	}
 
 	if options & INDEXED > 0 {
-		cd.not_null = true;
+		cd.notNull = true;
 		cd.unique = true;
 		cd.indexed = true;
 	}
 
 	if options & NO_PERSIST > 0 {
-		cd.no_persist = true;
+		cd.noPersist = true;
 	}
 
 	switch type_name {
 
 	case "varUTF8":
-		cd.type_constant = COL_TYPE_VAR_UTF8
+		cd.typeConstant = COL_TYPE_VAR_UTF8
 		if len(params) == 0 {
 			return nil, fmt.Errorf("Not enough parameters provided. Type varUTF8 must specify length")
 		}
@@ -167,7 +167,7 @@ func NewColumnDescriptor(name string, type_name string, options uint64, params .
 			if ok == false {
 				return nil, fmt.Errorf("parameter [length] must be uint64")
 			} 
-			cd.min_length = min_length
+			cd.minLength = min_length
 		} 
 
 		// Check if we have a regex and set it if needed
@@ -185,7 +185,7 @@ func NewColumnDescriptor(name string, type_name string, options uint64, params .
 		} 
 
 	case "blobUTF8":
-		cd.type_constant = COL_TYPE_BLOB_UTF8
+		cd.typeConstant = COL_TYPE_BLOB_UTF8
 
 		// return an error because we have too many parameters
 		if len(params) > 3 {
@@ -193,10 +193,10 @@ func NewColumnDescriptor(name string, type_name string, options uint64, params .
 		} 
 
 	case "int64":
-		cd.type_constant = COL_TYPE_I64
+		cd.typeConstant = COL_TYPE_I64
 		// TODO: process min, max, default
 	case "float64":
-		cd.type_constant = COL_TYPE_F64
+		cd.typeConstant = COL_TYPE_F64
 		// TODO: process min, max, default
 
 	default:
@@ -206,3 +206,102 @@ func NewColumnDescriptor(name string, type_name string, options uint64, params .
 
 	return cd, nil
 }
+
+
+func (cd * ColumnDescriptor) Name() string {
+	return cd.name
+}
+
+func (cd * ColumnDescriptor) TypeName() string {
+	return cd.typeName
+}
+
+func (cd * ColumnDescriptor) Length() uint64 {
+	return cd.length
+}
+
+func (cd * ColumnDescriptor) NotNull() bool {
+	return cd.notNull
+}
+
+func (cd * ColumnDescriptor) Unique() bool {
+	return cd.unique
+}
+
+func (cd * ColumnDescriptor) Indexed() bool {
+	return cd.indexed
+}
+
+func (cd * ColumnDescriptor) NoPersist() bool {
+	return cd.noPersist 
+}
+
+func (cd * ColumnDescriptor) Config() bool {
+	return cd.config
+}
+
+func (cd * ColumnDescriptor) DefaultValue() string {
+	return cd.defaultValue
+}
+
+func (cd * ColumnDescriptor) Regex() string {
+	return cd.regex
+}
+
+func (cd * ColumnDescriptor) Check() string {
+	return cd.check
+}
+
+func (cd * ColumnDescriptor) MinLength() uint64 {
+	return cd.minLength
+}
+
+func (cd * ColumnDescriptor) MinInt() int64 {
+	return cd.minInt
+}
+
+func (cd * ColumnDescriptor) MaxInt() int64 {
+	return cd.maxInt
+}
+
+func (cd * ColumnDescriptor) MinUint() uint64 {
+	return cd.minUint
+}
+
+func (cd * ColumnDescriptor) MaxUint() uint64 {
+	return cd.maxUint
+}
+
+func (cd * ColumnDescriptor) MinFloat() float64 {
+	return cd.minFloat
+}
+
+func (cd * ColumnDescriptor) MaxFloat() float64 {
+	return cd.maxFloat
+}
+
+
+
+/*
+type ColumnDescriptor struct {
+	name			string
+	typeName		string
+	length			uint64
+	typeConstant	uint16
+	notNull			bool
+	unique			bool
+	indexed 		bool
+	noPersist 		bool	// doesn't have to be written to disk (calculated or derived)
+	config 			bool 	// only needs to be written to disk if changed
+	defaultValue	string
+	regex			string  // a regex string to validate against
+	check			string	// Lua script
+	minLength		uint64
+	minInt			int64
+	maxInt	 		int64
+	minUint			uint64
+	maxUint	 		uint64
+	minFloat		float64
+	maxFloat 		float64
+}
+*/

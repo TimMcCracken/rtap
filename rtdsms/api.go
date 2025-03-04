@@ -58,11 +58,11 @@ The datastore manages several different kinds of data:
 
 // request is used by all 3 APIs.
 
-type request struct {
-	function_id 		uint16
-	db_key 				string 
-	object_key 			string 
-	response_channel 	*chan(error)
+type Request struct {
+	functionID	 		uint16
+	dbKey 				string 
+	objectKey 			string 
+	responseChannel 	*chan(error)
 	data				any
 	err					error
 //	info				string
@@ -80,7 +80,7 @@ type request struct {
 // pointer argument that is used for both the input and the output as needed.
 // ----------------------------------------------------------------------------
 
-func (ds * datastore) Select( records []*Record) (error) {
+func (ds * Datastore) Select( records []*Record) (error) {
 
 	// Send the request to the datastore server go routine via a channel
 	if ds.requests == nil {
@@ -91,8 +91,8 @@ func (ds * datastore) Select( records []*Record) (error) {
 	resp_chan := make( chan(error) )
 	
 	// Create a request
-	req := request{	function_id: func_id_select, 
-						response_channel: &resp_chan,
+	req := Request{	functionID: func_id_select, 
+						responseChannel: &resp_chan,
 						data: records} 
 		
 	// Send the request to the datastore server go routine via a channel
@@ -108,7 +108,7 @@ func (ds * datastore) Select( records []*Record) (error) {
 }
 
 
-func (ds * datastore) Update( records []*Record) (error) {
+func (ds * Datastore) Update( records []*Record) (error) {
 
 		// Send the request to the datastore server go routine via a channel
 		if ds.requests == nil {
@@ -119,8 +119,8 @@ func (ds * datastore) Update( records []*Record) (error) {
 		resp_chan := make( chan(error) )
 	
 		// Create a request
-		req := request{	function_id: func_id_update, 
-						response_channel: &resp_chan,
+		req := Request{	functionID: func_id_update, 
+						responseChannel: &resp_chan,
 						data: records} 
 		
 		// Send the request to the datastore server go routine via a channel
@@ -135,7 +135,7 @@ func (ds * datastore) Update( records []*Record) (error) {
 		return nil
 }
 
-func (ds * datastore) Insert( records []*Record) (error) {
+func (ds * Datastore) Insert( records []*Record) (error) {
 
 	// Send the request to the datastore server go routine via a channel
 	if ds.requests == nil {
@@ -146,8 +146,8 @@ func (ds * datastore) Insert( records []*Record) (error) {
 	resp_chan := make( chan(error) )
 
 	// Create a request
-	req := request{	function_id: func_id_insert, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_insert, 
+					responseChannel: &resp_chan,
 					data: records} 
 	
 	// Send the request to the datastore server go routine via a channel
@@ -163,7 +163,7 @@ func (ds * datastore) Insert( records []*Record) (error) {
 }
 
 
-func (ds * datastore) Delete( records []*Record) (error) {
+func (ds * Datastore) Delete( records []*Record) (error) {
 
 	// Send the request to the datastore server go routine via a channel
 	if ds.requests == nil {
@@ -174,8 +174,8 @@ func (ds * datastore) Delete( records []*Record) (error) {
 	resp_chan := make( chan(error) )
 
 	// Create a request
-	req := request{	function_id: func_id_delete, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_delete, 
+					responseChannel: &resp_chan,
 					data: records} 
 	
 	// Send the request to the datastore server go routine via a channel
@@ -208,7 +208,7 @@ persistence API functions
 // existing schema. Then if table is "*", all tables in that schema are 
 // snapshotted.
 // -----------------------------------------------------------------------------
-func (ds * datastore ) TakeSnapshot(snapshot_name string, 
+func (ds * Datastore ) TakeSnapshot(snapshot_name string, 
 									schema_name string, 
 									table_name string) error {
 	
@@ -220,17 +220,17 @@ func (ds * datastore ) TakeSnapshot(snapshot_name string,
 	// -------------------------------------------------------------------------
 	// allocate a persist structire
 	// -------------------------------------------------------------------------
-	data := persist { 	snapshot_name : snapshot_name,
-						schema_name : schema_name,
-						table_name  : table_name}
+	data := persist { 	snapshotName : snapshot_name,
+						schemaName : schema_name,
+						tableName  : table_name}
 
 	// -------------------------------------------------------------------------
 	// Create a request
 	// -------------------------------------------------------------------------
-	req := request{	function_id: func_id_take_snapshot, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_take_snapshot, 
+					responseChannel: &resp_chan,
 					data : &data} 
-	req.response_channel = &resp_chan
+	req.responseChannel = &resp_chan
 
 	// -------------------------------------------------------------------------
 	// Send the request to the datastore server go routine via a channel
@@ -248,7 +248,7 @@ func (ds * datastore ) TakeSnapshot(snapshot_name string,
 	return nil
 }
 
-func (ds * datastore ) RestoreSnapshot(	snapshot_name string, 
+func (ds * Datastore ) RestoreSnapshot(	snapshot_name string, 
 										schema_name string, 
 										table_name string) error {
 	// -------------------------------------------------------------------------
@@ -259,17 +259,17 @@ func (ds * datastore ) RestoreSnapshot(	snapshot_name string,
 	// -------------------------------------------------------------------------
 	// allocate a persist structire
 	// -------------------------------------------------------------------------
-	data := persist { 	snapshot_name : snapshot_name,
-						schema_name : schema_name,
-						table_name  : table_name}
+	data := persist { 	snapshotName : snapshot_name,
+						schemaName : schema_name,
+						tableName  : table_name}
 
 	// -------------------------------------------------------------------------
 	// Create a request
 	// -------------------------------------------------------------------------
-	req := request{	function_id: func_id_restore_snapshot, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_restore_snapshot, 
+					responseChannel: &resp_chan,
 					data : &data} 
-	req.response_channel = &resp_chan
+	req.responseChannel = &resp_chan
 
 	// -------------------------------------------------------------------------
 	// Send the request to the datastore server go routine via a channel
@@ -287,7 +287,7 @@ func (ds * datastore ) RestoreSnapshot(	snapshot_name string,
 	return nil
 }
 
-func (ds * datastore ) WriteSnapshot(	snapshot_name string, 
+func (ds * Datastore ) WriteSnapshot(	snapshot_name string, 
 										schema_name string, 
 										table_name string,
 										path_file string) error {
@@ -297,18 +297,18 @@ func (ds * datastore ) WriteSnapshot(	snapshot_name string,
 	// -------------------------------------------------------------------------
 	// allocate a persist structire
 	// -------------------------------------------------------------------------
-	data := persist { 	snapshot_name : snapshot_name,
-						schema_name : schema_name,
-						table_name  : table_name,
-						path_file : path_file}
+	data := persist { 	snapshotName : snapshot_name,
+						schemaName : schema_name,
+						tableName  : table_name,
+						pathFile : path_file}
 
 	// -------------------------------------------------------------------------
 	// Create a request
 	// -------------------------------------------------------------------------
-	req := request{	function_id: func_id_write_snapshot, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_write_snapshot, 
+					responseChannel: &resp_chan,
 					data : &data} 
-	req.response_channel = &resp_chan
+	req.responseChannel = &resp_chan
 
 	// -------------------------------------------------------------------------
 	// Send the request to the datastore server go routine via a channel
@@ -327,7 +327,7 @@ func (ds * datastore ) WriteSnapshot(	snapshot_name string,
 }
 
 
-func (ds * datastore ) ReadSnapshot(snapshot_name string, 
+func (ds * Datastore ) ReadSnapshot(snapshot_name string, 
 									schema_name string, 
 									table_name string,
 									path_file string) error {
@@ -339,18 +339,18 @@ func (ds * datastore ) ReadSnapshot(snapshot_name string,
 	// -------------------------------------------------------------------------
 	// allocate a persist structire
 	// -------------------------------------------------------------------------
-	data := persist { 	snapshot_name : snapshot_name,
-						schema_name : schema_name,
-						table_name  : table_name,
-						path_file : path_file}
+	data := persist { 	snapshotName : snapshot_name,
+						schemaName : schema_name,
+						tableName  : table_name,
+						pathFile : path_file}
 
 	// -------------------------------------------------------------------------
 	// Create a request
 	// -------------------------------------------------------------------------
-	req := request{	function_id: func_id_read_snapshot, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_read_snapshot, 
+					responseChannel: &resp_chan,
 					data : &data} 
-	req.response_channel = &resp_chan
+	req.responseChannel = &resp_chan
 
 	// -------------------------------------------------------------------------
 	// Send the request to the datastore server go routine via a channel
@@ -368,7 +368,7 @@ func (ds * datastore ) ReadSnapshot(snapshot_name string,
 	return nil
 }
 
-func (ds * datastore ) ClearSnapshot(	snapshot_name string, 
+func (ds * Datastore ) ClearSnapshot(	snapshot_name string, 
 										schema_name string, 
 										table_name string) error {
 
@@ -380,17 +380,17 @@ func (ds * datastore ) ClearSnapshot(	snapshot_name string,
 	// -------------------------------------------------------------------------
 	// allocate a persist structire
 	// -------------------------------------------------------------------------
-	data := persist { 	snapshot_name : snapshot_name,
-						schema_name : schema_name,
-						table_name  : table_name}
+	data := persist { 	snapshotName : snapshot_name,
+						schemaName : schema_name,
+						tableName  : table_name}
 
 	// -------------------------------------------------------------------------
 	// Create a request
 	// -------------------------------------------------------------------------
-	req := request{	function_id: func_id_clear_snapshot, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_clear_snapshot, 
+					responseChannel: &resp_chan,
 					data : &data} 
-	req.response_channel = &resp_chan
+	req.responseChannel = &resp_chan
 
 	// -------------------------------------------------------------------------
 	// Send the request to the datastore server go routine via a channel
@@ -408,7 +408,7 @@ func (ds * datastore ) ClearSnapshot(	snapshot_name string,
 	return nil
 }
 
-func (ds * datastore ) ClearRealtime(	schema_name string, 
+func (ds * Datastore ) ClearRealtime(	schema_name string, 
 										table_name string) error {
 	// -------------------------------------------------------------------------
 	// Create a channel for the response
@@ -418,16 +418,16 @@ func (ds * datastore ) ClearRealtime(	schema_name string,
 // -------------------------------------------------------------------------
 	// allocate a persist structire
 	// -------------------------------------------------------------------------
-	data := persist { 	schema_name : schema_name,
-						table_name  : table_name}
+	data := persist { 	schemaName : schema_name,
+						tableName  : table_name}
 
 	// -------------------------------------------------------------------------
 	// Create a request
 	// -------------------------------------------------------------------------
-	req := request{	function_id: func_id_clear_realtime, 
-					response_channel: &resp_chan,
+	req := Request{	functionID: func_id_clear_snapshot, 
+					responseChannel: &resp_chan,
 					data : &data} 
-	req.response_channel = &resp_chan
+	req.responseChannel = &resp_chan
 
 	// -------------------------------------------------------------------------
 	// Send the request to the datastore server go routine via a channel

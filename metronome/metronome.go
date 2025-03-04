@@ -5,7 +5,9 @@ The metronome is the "heartbeat of the system. Once each second it sends a
 broadcast message to the messageQueue with a structure that indicates the 
 seconds of offset since the most recent minute, hour and day. 
 
-The values are based on either UTC 
+The metronome only calculates offset for seconds and minutes. Time zone 
+dependencies could vary with different systems, and even different goroutines
+and so should be calculated as needed.
 
 Rev Date     By  Reason
 --- -------- --- ---------------------------------------------------------------
@@ -16,8 +18,10 @@ package metronome
  
 import (
 	"fmt"
+	mq 		"rtap/message_q"
+	pb 		"rtap/metronome/metronome.pb"
+	proto 	"github.com/golang/protobuf/proto"
 	"time"
-	pb "rtap/metronome/metronome.pb"
 )
 
 
@@ -86,27 +90,28 @@ type Tic struct{
 
 func Metronome() {
 
+	// Declare teh structure for the data to be marshalled.
 	var pb_tick pb.Tick
 
-	now := time.Now()
-
-
-	soon := now.Add(1 * time.Second)
-	soon_rounded := soon.Round(time.Second)
-	wait_time := time.Until(soon_rounded)
-	time.Sleep(wait_time)
-
+	// fill the structure with data.
 	for {
 
+		// get the current time.
+		now := time.Now()
+		
+		// calculate a sleep time to get us close to the top of the second.
+		soon 			:= now.Add(1 * time.Second)
+		soon_rounded 	:= soon.Round(time.Second)
+		wait_time 		:= time.Until(soon_rounded)
+        time.Sleep(wait_time)
+
+		// get the current second and minute.
 		second	:= int32(now.Second())
 		minute	:= int32(now.Minute())
-		hour 	:= int32(now.Hour())
-
+	
 		pb_tick.Second = int32(second)
 		pb_tick.Minute = int32(minute)
-		pb_tick.Hour = int32(hour)
 	
-
 		// calculate the offsetts
 		pb_tick.Seconda_2 = second % 2
 		pb_tick.Seconda_3 = second % 3
@@ -131,12 +136,39 @@ func Metronome() {
 		pb_tick.Minutes_15 = ((minute * 60) + second) % 900
 		pb_tick.Minutes_20 = ((minute * 60) + second) % 1200
 		pb_tick.Minutes_30 = ((minute * 60) + second) % 1800
+
+		// -------------------------------------------------------------------------
+		// Get a buffer from the pool
+		// -------------------------------------------------------------------------
+		buf_ptr := mq.GetBuffer().(*[]byte)
 		
-     //   fmt.Printf("%4d %4d %4d %4d %4d\n", pb_tick.Minutes_1, pb_tick.Minutes_2,  pb_tick.Minutes_3, pb_tick.Minutes_4, pb_tick.Minutes_5,)
-		
-		soon := now.Add(1 * time.Second)
-		soon_rounded := soon.Round(time.Second)
-		wait_time := time.Until(soon_rounded)
-        time.Sleep(wait_time)
-    }
+		// -------------------------------------------------------------------------
+		// Marshall the data and copy it into the buffer
+		// -------------------------------------------------------------------------
+
+		data, err := proto.Marshal(&pb_tick)
+		if err != nil {
+			// TODO: fix this
+    		fmt.Printf("Failed to encode address book:", err)
+		}
+
+		// -------------------------------------------------------------------------
+		// Ensure buffer is large enough
+		// -------------------------------------------------------------------------
+		if len(data) > cap(*buf_ptr) {
+			fmt.Printf("Buffer is too small.")
+		}
+
+		// -------------------------------------------------------------------------
+		// Copy marshaled data into the buffer to minimize allocations
+		// -------------------------------------------------------------------------
+		copy(*buf_ptr, data)		
+
+		// -------------------------------------------------------------------------
+		// Send the data to the message_q.
+		// -------------------------------------------------------------------------
+		destinations := []string {"*"}
+		mq.Send(destinations, buf_ptr)
+
+	}
 }

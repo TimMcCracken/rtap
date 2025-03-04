@@ -6,9 +6,9 @@ import (
 
 
 type datastoreDescriptor struct {
-	realm_name	string
-	domain_name	string
-	datastore_name	string
+	realmName	string
+	domainName	string
+	datastoreName	string
 //	path	string
 }
 

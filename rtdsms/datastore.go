@@ -20,47 +20,83 @@ of many database systems.
 
 datastore is the interface that all the methods wrap around.
 -----------------------------------------------------------------------------*/
-type datastore struct {
+type Datastore struct {
 	descriptor					datastoreDescriptor
 //	name						string
 	state 						uint8
 	path						string
-	requests 					chan( * request)
+	requests 					chan( * Request)
 /*	tables						[]*table
 	tableMap					map[string]uint64 */
 	schemas						[]*schema
-	schemas_map 				map[string]uint64
-	snapshot_descriptors		[]*SnapshotDescriptor
-	snapshot_descriptors_map	map[string]uint64
-	context_descriptors			[]*ContextDescriptor
-	context_descriptors_map		map[string]uint64
+	schemasMap 					map[string]uint64
+	snapshotDescriptors			[]*SnapshotDescriptor
+	snapshotDescriptorsMap		map[string]uint64
+	contextDescriptors			[]*ContextDescriptor
+	contextDescriptorsMap		map[string]uint64
 }
+
+
+// -----------------------------------------------------------------------------
+// NewDatastore() 
+// -----------------------------------------------------------------------------
+func NewDatastore(realm_name string, domain_name string, datastore_name string) ( * Datastore, error) {
+
+
+	// TODO: validate object names
+
+	ds := Datastore {
+	}
+	ds.descriptor.datastoreName = datastore_name
+	ds.descriptor.domainName = domain_name
+	ds.descriptor.realmName = realm_name
+	return &ds, nil
+}
+
+
+
 
 
 /* ---------------------------------------------------------------------------
 Start()  
 ---------------------------------------------------------------------------- */
-func (datastore * datastore ) Start() {
+func (datastore * Datastore ) Start() {
 	
 	go datastoreLoop(datastore)
 
 }
 
 
-func (datastore * datastore ) Stop() {
+
+
+func (datastore * Datastore ) Stop() {
 //	for _, ds := range rtdsms.datastores{
 //		ds.Stop()
 //	}
 }
 
+func datastore_dummy (ds * Datastore, request * Request) {
+	//	fmt.Printf("%s Request: Function: %d   DB: %s\n", ds.name, request.functionID, request.db_key)
+		request.err = fmt.Errorf("functionID [%d] is not implemented.", request.functionID)
+}
+
+
+// -----------------------------------------------------------------------------
+// ping() is a diagnostic function that is used bu the WatchDog timer
+// -----------------------------------------------------------------------------
+func datastore_ping (ds * Datastore, request * Request) {
+	request.err = nil
+}
+
+
 /* ----------------------------------------------------------------------------
  Each data store has a loop that runs continuoulsy to  service datastore 
  requests.
 -----------------------------------------------------------------------------*/
-func datastoreLoop(ds * datastore) {
+func datastoreLoop(ds * Datastore) {
 
 	// Create an array of functions that provide data store services
-	var funcs [100]func( *datastore, * request )           
+	var funcs [100]func( *Datastore, * Request )           
 
 	//First fill in the table with dummy funcs
 	for i := 0; i < 100; i++ {
@@ -89,19 +125,19 @@ func datastoreLoop(ds * datastore) {
 
 	// ... TODO: add the Data Control API functions
 
-	ds.requests = make(chan * request)
+	ds.requests = make(chan * Request)
 
 	for true {
 		request := <- ds.requests // Blocking receive
 	
-		if request.function_id > 100 {
-			request.err = fmt.Errorf("Function_id [%d] is invalid - too large.", request.function_id)
+		if request.functionID > 100 {
+			request.err = fmt.Errorf("functionID [%d] is invalid - too large.", request.functionID)
 		} else {
-			funcs[request.function_id](ds, request)
+			funcs[request.functionID](ds, request)
 		}
 
 		// nil is ALWAYS returned through the channel, simply as a sync signal
-		*request.response_channel <- nil
+		*request.responseChannel <- nil
 	}
 }
 
@@ -110,15 +146,15 @@ func datastoreLoop(ds * datastore) {
 // -----------------------------------------------------------------------------
 // construct   () 
 // -----------------------------------------------------------------------------
-func (datastore * datastore) construct(filename string) error  {
+func (ds * Datastore) Construct(filename string) error  {
 
-//	fmt.Printf("Constructing datastore [%s] [%s] [%s]...\n", datastore.descriptor.realm_name, datastore.descriptor.domain_name, datastore.descriptor.datastore_name)
+//	fmt.Printf("Constructing datastore [%s] [%s] [%s]...\n", datastore.descriptor.realmName, datastore.descriptor.domainName, datastore.descriptor.datastoreName)
 
-	if datastore.schemas_map == nil {
-		datastore.schemas_map = make(map[string]uint64)
+	if ds.schemasMap == nil {
+		ds.schemasMap = make(map[string]uint64)
 	}
-	if datastore.snapshot_descriptors_map == nil {
-		datastore.snapshot_descriptors_map = make(map[string]uint64)
+	if ds.snapshotDescriptorsMap == nil {
+		ds.snapshotDescriptorsMap = make(map[string]uint64)
 	}
 
 
@@ -139,8 +175,8 @@ func (datastore * datastore) construct(filename string) error  {
 	// Get the domain_id
 	// ------------------------------------------------------------------------
 	var domain_id	int64
-	result := db.Raw("SELECT domain_id FROM domains where domain_name = ?", 
-					datastore.descriptor.domain_name).Scan(&domain_id)
+	result := db.Raw("SELECT domain_id FROM domains where domainName = ?", 
+					ds.descriptor.domainName).Scan(&domain_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -149,8 +185,8 @@ func (datastore * datastore) construct(filename string) error  {
 	// Get the datastore_id
 	// ------------------------------------------------------------------------
 	var datastore_id	int64
-	result = db.Raw("SELECT datastore_id FROM datastores where domain_id = ? AND datastore_name = ?", 
-					domain_id, datastore.descriptor.datastore_name).Scan(&datastore_id)
+	result = db.Raw("SELECT datastore_id FROM datastores where domain_id = ? AND datastoreName = ?", 
+					domain_id, ds.descriptor.datastoreName).Scan(&datastore_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -158,7 +194,7 @@ func (datastore * datastore) construct(filename string) error  {
 	// ------------------------------------------------------------------------
 	// Select the snapshots
 	// ------------------------------------------------------------------------
-	snapshot_rows, err := sqlDB.Query("SELECT snapshot_name FROM snapshots WHERE domain_id = ? AND datastore_id = ? order by snapshot_id", domain_id, datastore_id)
+	snapshot_rows, err := sqlDB.Query("SELECT snapshotName FROM snapshots WHERE domain_id = ? AND datastore_id = ? order by snapshot_id", domain_id, datastore_id)
     if err != nil {
         return err
     }
@@ -166,16 +202,16 @@ func (datastore * datastore) construct(filename string) error  {
 
     // Loop through rows, using Scan to assign column data to struct fields.
     for snapshot_rows.Next() {
-		var snapshot_name string
-        err := snapshot_rows.Scan(&snapshot_name)
+		var snapshotName string
+        err := snapshot_rows.Scan(&snapshotName)
 		if err != nil {
             return fmt.Errorf("%v\n", err)
         } else {
 				snapshot := SnapshotDescriptor {
-				name : snapshot_name,
+				name : snapshotName,
 			}
-			datastore.snapshot_descriptors_map[snapshot_name] = uint64(len(datastore.snapshot_descriptors))
-			datastore.snapshot_descriptors = append(datastore.snapshot_descriptors, &snapshot)
+			ds.snapshotDescriptorsMap[snapshotName] = uint64(len(ds.snapshotDescriptors))
+			ds.snapshotDescriptors = append(ds.snapshotDescriptors, &snapshot)
 		}
 	}
 
@@ -185,7 +221,7 @@ func (datastore * datastore) construct(filename string) error  {
 	// ------------------------------------------------------------------------
 	// Select the schemas
 	// ------------------------------------------------------------------------
-	rows, err := sqlDB.Query("SELECT schema_name FROM schemas WHERE domain_id = ? AND datastore_id = ? order by schema_id", domain_id, datastore_id)
+	rows, err := sqlDB.Query("SELECT schemaName FROM schemas WHERE domain_id = ? AND datastore_id = ? order by schema_id", domain_id, datastore_id)
     if err != nil {
         return err
     }
@@ -200,19 +236,18 @@ func (datastore * datastore) construct(filename string) error  {
         } else {
 			schema := schema {
 			}
-			schema.descriptor.schema_name = name
-			schema.descriptor.datastore_name = datastore.descriptor.datastore_name
-			schema.descriptor.domain_name = datastore.descriptor.domain_name
-			schema.descriptor.realm_name = datastore.descriptor.realm_name
-			datastore.schemas_map[name] = uint64(len(datastore.schemas_map))
-			datastore.schemas = append(datastore.schemas, &schema)
+			schema.descriptor.schemaName = name
+			schema.descriptor.datastoreName = ds.descriptor.datastoreName
+			schema.descriptor.domainName = ds.descriptor.domainName
+			schema.descriptor.realmName = ds.descriptor.realmName
+			ds.schemas = append(ds.schemas, &schema)
 		}
     }
     if err = rows.Err(); err != nil {
 		return fmt.Errorf("%v\n", err)
     }
 
-	for _, schema := range datastore.schemas {
+	for _, schema := range ds.schemas {
 		err = schema.construct(filename)
 		if err != nil {
 			return fmt.Errorf("%v\n", err)

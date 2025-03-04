@@ -11,7 +11,7 @@ import (
 type schema struct {
 	descriptor 	schemaDescriptor
 	tables		[]*table
-	tables_map 	map[string]uint64
+	tablesMap 	map[string]uint64
 }
 
 
@@ -27,8 +27,8 @@ func (schema * schema) construct(filename string) error  {
 //				schema.descriptor.datastore_name,
 //				schema.descriptor.schema_name)
 
-	if schema.tables_map == nil {
-		schema.tables_map = make(map[string]uint64)
+	if schema.tablesMap == nil {
+		schema.tablesMap = make(map[string]uint64)
 	}
 
 	// ------------------------------------------------------------------------
@@ -49,7 +49,7 @@ func (schema * schema) construct(filename string) error  {
 	// ------------------------------------------------------------------------
 	var domain_id	int64
 	result := db.Raw("SELECT domain_id FROM domains where domain_name = ?", 
-					schema.descriptor.domain_name).Scan(&domain_id)
+					schema.descriptor.domainName).Scan(&domain_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -59,7 +59,7 @@ func (schema * schema) construct(filename string) error  {
 	// ------------------------------------------------------------------------
 	var datastore_id	int64
 	result = db.Raw("SELECT datastore_id FROM datastores WHERE domain_id = ? AND datastore_name = ?", 
-					domain_id, schema.descriptor.datastore_name).Scan(&datastore_id)
+					domain_id, schema.descriptor.datastoreName).Scan(&datastore_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -69,7 +69,7 @@ func (schema * schema) construct(filename string) error  {
 	// ------------------------------------------------------------------------
 	var schema_id	int64
 	result = db.Raw("SELECT schema_id FROM schemas WHERE domain_id = ? AND datastore_id = ? AND schema_name = ?", 
-					domain_id, datastore_id, schema.descriptor.schema_name).Scan(&schema_id)
+					domain_id, datastore_id, schema.descriptor.schemaName).Scan(&schema_id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -92,13 +92,13 @@ func (schema * schema) construct(filename string) error  {
         } else {
 			table := table {
 			}
-			table.descriptor, err = NewTableDescriptor(schema.descriptor.realm_name,
-												schema.descriptor.domain_name,
-												schema.descriptor.datastore_name,
-												schema.descriptor.schema_name, 
+			table.descriptor, err = NewTableDescriptor(schema.descriptor.realmName,
+												schema.descriptor.domainName,
+												schema.descriptor.datastoreName,
+												schema.descriptor.schemaName, 
 												table_name, total_rows, nil) 
 
-			schema.tables_map[table_name] = uint64(len(schema.tables_map))
+			schema.tablesMap[table_name] = uint64(len(schema.tablesMap))
 			schema.tables = append(schema.tables, &table)
 		}
     }

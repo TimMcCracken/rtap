@@ -27,11 +27,11 @@ Some applications might also need to "snapshot" files...
 // fileds are used for every request.
 
 type persist struct {
-	schema_name		string
-	table_name		string
-	snapshot_name	string		// name of the snapshot used as the target 
-	context_name	string		// name of the context us as the target
-	path_file		string		// path and file name
+	schemaName		string
+	tableName		string
+	snapshotName	string		// name of the snapshot used as the target 
+	contextName		string		// name of the context us as the target
+	pathFile		string		// path and file name
 
 }
 
@@ -116,7 +116,7 @@ func init(){
 
 
 
-func takeSnapshot (ds * datastore, request * request) {
+func takeSnapshot (ds * Datastore, request * Request) {
 	
 	// -------------------------------------------------------------------------
 	// Get a pointer to the request data
@@ -133,20 +133,20 @@ func takeSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	var schema_index uint64
 	var table_index uint64
-	if persist.schema_name != "*" {
-		schema_index, ok = ds.schemas_map[persist.schema_name]
+	if persist.schemaName != "*" {
+		schema_index, ok = ds.schemasMap[persist.schemaName]
 		if ok != true {
-			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 			return
 		}
 
 		// --------------------------------------------------------------------
 		// Get the table_index, if any
 		// --------------------------------------------------------------------
-		if  persist.table_name != "*" {
-			table_index, ok = ds.schemas[schema_index].tables_map[persist.table_name]
+		if  persist.tableName != "*" {
+			table_index, ok = ds.schemas[schema_index].tablesMap[persist.tableName]
 			if ok != true {
-				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 				return
 			}
 		}
@@ -155,21 +155,21 @@ func takeSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Get the snapshot index
 	// -------------------------------------------------------------------------
-	snapshot_index, ok := ds.snapshot_descriptors_map[persist.snapshot_name]
+	snapshot_index, ok := ds.snapshotDescriptorsMap[persist.snapshotName]
 	if ok != true {
-		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshot_name)
+		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshotName)
 		return
 	}
 
 	// -------------------------------------------------------------------------
 	// Do the snapshot
 	// -------------------------------------------------------------------------
-	if persist.schema_name == "*" {
+	if persist.schemaName == "*" {
 		for _, schema := range ds.schemas {		
 			for _, table := range schema.tables {
 				for col_index, _ := range table.columns {
 
-					type_constant := table.descriptor.column_descriptors[col_index].type_constant
+					type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 					if type_constant >= max_column_types {
 						request.err = fmt.Errorf("Column type_constant [%d] exceeds max_column_type [%d].", 
 									type_constant, max_column_types)
@@ -188,7 +188,7 @@ func takeSnapshot (ds * datastore, request * request) {
 
 		table := ds.schemas[schema_index].tables[table_index]
 		for col_index, _ := range table.columns {
-			type_constant := table.descriptor.column_descriptors[col_index].type_constant
+			type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 			err := takeSnapshotFuncs[type_constant](table, uint16(snapshot_index), uint16(col_index))
 			if err != nil{
 				request.err = fmt.Errorf("Error taking snapshot func[%v].", err)
@@ -200,7 +200,7 @@ func takeSnapshot (ds * datastore, request * request) {
 }
 
 
-func restoreSnapshot (ds * datastore, request * request) {
+func restoreSnapshot (ds * Datastore, request * Request) {
 	
 	// -------------------------------------------------------------------------
 	// Get a pointer to the request data
@@ -216,20 +216,20 @@ func restoreSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	var schema_index uint64
 	var table_index uint64
-	if persist.schema_name != "*" {
-		schema_index, ok = ds.schemas_map[persist.schema_name]
+	if persist.schemaName != "*" {
+		schema_index, ok = ds.schemasMap[persist.schemaName]
 		if ok != true {
-			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 			return
 		}
 
 		// --------------------------------------------------------------------
 		// Get the table_index, if any
 		// --------------------------------------------------------------------
-		if  persist.table_name != "*" {
-			table_index, ok = ds.schemas[schema_index].tables_map[persist.table_name]
+		if  persist.tableName != "*" {
+			table_index, ok = ds.schemas[schema_index].tablesMap[persist.tableName]
 			if ok != true {
-				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 				return
 			}
 		}
@@ -238,21 +238,21 @@ func restoreSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Get the snapshot index
 	// -------------------------------------------------------------------------
-	snapshot_index, ok := ds.snapshot_descriptors_map[persist.snapshot_name]
+	snapshot_index, ok := ds.snapshotDescriptorsMap[persist.snapshotName]
 	if ok != true {
-		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshot_name)
+		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshotName)
 		return
 	}
 
 	// -------------------------------------------------------------------------
 	// Do the restore snapshot
 	// -------------------------------------------------------------------------
-	if persist.schema_name == "*" {
+	if persist.schemaName == "*" {
 		for _, schema := range ds.schemas {		
 			for _, table := range schema.tables {
 				for col_index, _ := range table.columns {
 
-					type_constant := table.descriptor.column_descriptors[col_index].type_constant
+					type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 					if type_constant >= max_column_types {
 						request.err = fmt.Errorf("Column type_constant [%d] exceeds max_column_type [%d].", 
 									type_constant, max_column_types)
@@ -271,7 +271,7 @@ func restoreSnapshot (ds * datastore, request * request) {
 
 		table := ds.schemas[schema_index].tables[table_index]
 		for col_index, _ := range table.columns {
-			type_constant := table.descriptor.column_descriptors[col_index].type_constant
+			type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 			err := restoreSnapshotFuncs[type_constant](table, uint16(snapshot_index), uint16(col_index))
 			if err != nil{
 				request.err = fmt.Errorf("Error taking snapshot func[%v].", err)
@@ -285,7 +285,7 @@ func restoreSnapshot (ds * datastore, request * request) {
 // -----------------------------------------------------------------------------
 // ClearSnapshot
 // -----------------------------------------------------------------------------
-func clearSnapshot (ds * datastore, request * request) {
+func clearSnapshot (ds * Datastore, request * Request) {
 	// -------------------------------------------------------------------------
 	// Get a pointer to the request data
 	// -------------------------------------------------------------------------
@@ -300,20 +300,20 @@ func clearSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	var schema_index uint64
 	var table_index uint64
-	if persist.schema_name != "*" {
-		schema_index, ok = ds.schemas_map[persist.schema_name]
+	if persist.schemaName != "*" {
+		schema_index, ok = ds.schemasMap[persist.schemaName]
 		if ok != true {
-			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 			return
 		}
 
 		// --------------------------------------------------------------------
 		// Get the table_index, if any
 		// --------------------------------------------------------------------
-		if  persist.table_name != "*" {
-			table_index, ok = ds.schemas[schema_index].tables_map[persist.table_name]
+		if  persist.tableName != "*" {
+			table_index, ok = ds.schemas[schema_index].tablesMap[persist.tableName]
 			if ok != true {
-				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 				return
 			}
 		}
@@ -322,21 +322,21 @@ func clearSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Get the snapshot index
 	// -------------------------------------------------------------------------
-	snapshot_index, ok := ds.snapshot_descriptors_map[persist.snapshot_name]
+	snapshot_index, ok := ds.snapshotDescriptorsMap[persist.snapshotName]
 	if ok != true {
-		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshot_name)
+		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshotName)
 		return
 	}
 
 	// -------------------------------------------------------------------------
 	// Do the restore snapshot
 	// -------------------------------------------------------------------------
-	if persist.schema_name == "*" {
+	if persist.schemaName == "*" {
 		for _, schema := range ds.schemas {		
 			for _, table := range schema.tables {
 				for col_index, _ := range table.columns {
 
-					type_constant := table.descriptor.column_descriptors[col_index].type_constant
+					type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 					if type_constant >= max_column_types {
 						request.err = fmt.Errorf("Column type_constant [%d] exceeds max_column_type [%d].", 
 									type_constant, max_column_types)
@@ -355,7 +355,7 @@ func clearSnapshot (ds * datastore, request * request) {
 
 		table := ds.schemas[schema_index].tables[table_index]
 		for col_index, _ := range table.columns {
-			type_constant := table.descriptor.column_descriptors[col_index].type_constant
+			type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 			err := clearSnapshotFuncs[type_constant](table, uint16(snapshot_index), uint16(col_index))
 			if err != nil{
 				request.err = fmt.Errorf("Error taking snapshot func[%v].", err)
@@ -370,7 +370,7 @@ func clearSnapshot (ds * datastore, request * request) {
 // -----------------------------------------------------------------------------
 // clearRealtime
 // -----------------------------------------------------------------------------
-func clearRealtime (ds * datastore, request * request) {
+func clearRealtime (ds * Datastore, request * Request) {
 
 	// -------------------------------------------------------------------------
 	// Get a pointer to the request data
@@ -386,20 +386,20 @@ func clearRealtime (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	var schema_index uint64
 	var table_index uint64
-	if persist.schema_name != "*" {
-		schema_index, ok = ds.schemas_map[persist.schema_name]
+	if persist.schemaName != "*" {
+		schema_index, ok = ds.schemasMap[persist.schemaName]
 		if ok != true {
-			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 			return
 		}
 
 		// --------------------------------------------------------------------
 		// Get the table_index, if any
 		// --------------------------------------------------------------------
-		if  persist.table_name != "*" {
-			table_index, ok = ds.schemas[schema_index].tables_map[persist.table_name]
+		if  persist.tableName != "*" {
+			table_index, ok = ds.schemas[schema_index].tablesMap[persist.tableName]
 			if ok != true {
-				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 				return
 			}
 		}
@@ -408,12 +408,12 @@ func clearRealtime (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Clear the realtime data
 	// -------------------------------------------------------------------------
-	if persist.schema_name == "*" {
+	if persist.schemaName == "*" {
 		for _, schema := range ds.schemas {		
 			for _, table := range schema.tables {
 				for col_index, _ := range table.columns {
 
-					type_constant := table.descriptor.column_descriptors[col_index].type_constant
+					type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 					if type_constant >= max_column_types {
 						request.err = fmt.Errorf("Column type_constant [%d] exceeds max_column_type [%d].", 
 									type_constant, max_column_types)
@@ -432,7 +432,7 @@ func clearRealtime (ds * datastore, request * request) {
 
 		table := ds.schemas[schema_index].tables[table_index]
 		for col_index, _ := range table.columns {
-			type_constant := table.descriptor.column_descriptors[col_index].type_constant
+			type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 			err := clearRealtimeFuncs[type_constant](table, uint16(col_index))
 			if err != nil{
 				request.err = fmt.Errorf("Error clear realtime func[%v].", err)
@@ -450,7 +450,7 @@ func clearRealtime (ds * datastore, request * request) {
 // -----------------------------------------------------------------------------
 // WriteSnapshot
 // -----------------------------------------------------------------------------
-func writeSnapshot (ds * datastore, request * request) {
+func writeSnapshot (ds * Datastore, request * Request) {
 
 	// -------------------------------------------------------------------------
 	// Get a pointer to the request data
@@ -464,7 +464,7 @@ func writeSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Open the file that we will write to.
 	// -------------------------------------------------------------------------
-	file, err := os.OpenFile(persist.path_file, os.O_RDWR|os.O_CREATE, 0644)
+	file, err := os.OpenFile(persist.pathFile, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		request.err =  fmt.Errorf("Error opening file: %v", err)
 	}
@@ -475,20 +475,20 @@ func writeSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	var schema_index uint64
 	var table_index uint64
-	if persist.schema_name != "*" {
-		schema_index, ok = ds.schemas_map[persist.schema_name]
+	if persist.schemaName != "*" {
+		schema_index, ok = ds.schemasMap[persist.schemaName]
 		if ok != true {
-			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 			return
 		}
 
 		// --------------------------------------------------------------------
 		// Get the table_index, if any
 		// --------------------------------------------------------------------
-		if  persist.table_name != "*" {
-			table_index, ok = ds.schemas[schema_index].tables_map[persist.table_name]
+		if  persist.tableName != "*" {
+			table_index, ok = ds.schemas[schema_index].tablesMap[persist.tableName]
 			if ok != true {
-				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 				return
 			}
 		}
@@ -497,9 +497,9 @@ func writeSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Get the snapshot index
 	// -------------------------------------------------------------------------
-	snapshot_index, ok := ds.snapshot_descriptors_map[persist.snapshot_name]
+	snapshot_index, ok := ds.snapshotDescriptorsMap[persist.snapshotName]
 	if ok != true {
-		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshot_name)
+		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshotName)
 		return
 	}
 
@@ -508,12 +508,12 @@ func writeSnapshot (ds * datastore, request * request) {
 	// TODO: Convert the following code (and in readSnapshot) to be a gorouting
 	// 
 	// -------------------------------------------------------------------------
-	if persist.schema_name == "*" {
+	if persist.schemaName == "*" {
 		for _, schema := range ds.schemas {		
 			for _, table := range schema.tables {
 				for col_index, _ := range table.columns {
 
-					type_constant := table.descriptor.column_descriptors[col_index].type_constant
+					type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 					if type_constant >= max_column_types {
 						request.err = fmt.Errorf("Column type_constant [%d] exceeds max_column_type [%d].", 
 									type_constant, max_column_types)
@@ -532,7 +532,7 @@ func writeSnapshot (ds * datastore, request * request) {
 
 		table := ds.schemas[schema_index].tables[table_index]
 		for col_index, _ := range table.columns {
-			type_constant := table.descriptor.column_descriptors[col_index].type_constant
+			type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 			err := writeSnapshotFuncs[type_constant](table, uint16(snapshot_index), uint16(col_index), file)
 			if err != nil{
 				request.err = fmt.Errorf("Error taking snapshot func[%v].", err)
@@ -550,7 +550,7 @@ func writeSnapshot (ds * datastore, request * request) {
 // -----------------------------------------------------------------------------
 
 
-func readSnapshot (ds * datastore, request * request) {
+func readSnapshot (ds * Datastore, request * Request) {
 	// -------------------------------------------------------------------------
 	// Get a pointer to the request data
 	// -------------------------------------------------------------------------
@@ -563,7 +563,7 @@ func readSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Open the file that we will readfrom
 	// -------------------------------------------------------------------------
-	file, err := os.OpenFile(persist.path_file, os.O_RDWR|os.O_CREATE, 0644)
+	file, err := os.OpenFile(persist.pathFile, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		request.err =  fmt.Errorf("Error opening file: %v", err)
 	}
@@ -575,20 +575,20 @@ func readSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	var schema_index uint64
 	var table_index uint64
-	if persist.schema_name != "*" {
-		schema_index, ok = ds.schemas_map[persist.schema_name]
+	if persist.schemaName != "*" {
+		schema_index, ok = ds.schemasMap[persist.schemaName]
 		if ok != true {
-			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+			request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 			return
 		}
 
 		// --------------------------------------------------------------------
 		// Get the table_index, if any
 		// --------------------------------------------------------------------
-		if  persist.table_name != "*" {
-			table_index, ok = ds.schemas[schema_index].tables_map[persist.table_name]
+		if  persist.tableName != "*" {
+			table_index, ok = ds.schemas[schema_index].tablesMap[persist.tableName]
 			if ok != true {
-				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schema_name)
+				request.err = fmt.Errorf("Schema name [%s] not found.", persist.schemaName)
 				return
 			}
 		}
@@ -597,21 +597,21 @@ func readSnapshot (ds * datastore, request * request) {
 	// -------------------------------------------------------------------------
 	// Get the snapshot index
 	// -------------------------------------------------------------------------
-	snapshot_index, ok := ds.snapshot_descriptors_map[persist.snapshot_name]
+	snapshot_index, ok := ds.snapshotDescriptorsMap[persist.snapshotName]
 	if ok != true {
-		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshot_name)
+		request.err = fmt.Errorf("Snapshot Name [%s] not found.", persist.snapshotName)
 		return
 	}
 
 	// -------------------------------------------------------------------------
 	// Do the snapshot write
 	// -------------------------------------------------------------------------
-	if persist.schema_name == "*" {
+	if persist.schemaName == "*" {
 		for _, schema := range ds.schemas {		
 			for _, table := range schema.tables {
 				for col_index, _ := range table.columns {
 
-					type_constant := table.descriptor.column_descriptors[col_index].type_constant
+					type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 					if type_constant >= max_column_types {
 						request.err = fmt.Errorf("Column type_constant [%d] exceeds max_column_type [%d].", 
 									type_constant, max_column_types)
@@ -630,7 +630,7 @@ func readSnapshot (ds * datastore, request * request) {
 
 		table := ds.schemas[schema_index].tables[table_index]
 		for col_index, _ := range table.columns {
-			type_constant := table.descriptor.column_descriptors[col_index].type_constant
+			type_constant := table.descriptor.ColumnDescriptors[col_index].typeConstant
 			err := readSnapshotFuncs[type_constant](table, uint16(snapshot_index), uint16(col_index), file)
 			if err != nil{
 				request.err = fmt.Errorf("Error taking snapshot func[%v].", err)
@@ -642,12 +642,12 @@ func readSnapshot (ds * datastore, request * request) {
 }
 
 
-func writeContext (ds * datastore, request * request) {
+func writeContext (ds * Datastore, request * Request) {
 	//	fmt.Printf("%s Request: Function: %d   DB: %s\n", ds.name, request.function_id, request.db_key)
 		request.err = fmt.Errorf("Function_name [writeContext] under development .")
 }
 
-func readContext (ds * datastore, request * request) {
+func readContext (ds * Datastore, request * Request) {
 	//	fmt.Printf("%s Request: Function: %d   DB: %s\n", ds.name, request.function_id, request.db_key)
 		request.err = fmt.Errorf("Function_name [readContext] under development .")
 }
@@ -662,8 +662,8 @@ TODO: move all the handlers to their own file when we add the rest of the types
 
 func takeSnapshotUndefined(tbl * table, snapshot_index uint16, col_index uint16) error {
 	return fmt.Errorf("internal error - undefined column type [%d].", 
-//				tbl.columns[col_index].descriptor.type_constant) 
-				tbl.descriptor.column_descriptors[col_index].type_constant) 
+//				tbl.columns[col_index].descriptor.typeConstant) 
+				tbl.descriptor.ColumnDescriptors[col_index].typeConstant) 
 }
 
 // ----------------------------------------------------------------------------
@@ -680,7 +680,7 @@ func takeSnapshotUTF8(tbl * table, snapshot_index uint16, col_index uint16) erro
 		return fmt.Errorf("internal error - destination type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = source[rowCntr]
 	}
 	
@@ -701,7 +701,7 @@ func takeSnapshotInt64(tbl * table, snapshot_index uint16, col_index uint16) err
 		return fmt.Errorf("internal error - destination type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = source[rowCntr]
 	}
 	
@@ -721,7 +721,7 @@ func takeSnapshotFloat64(tbl * table, snapshot_index uint16, col_index uint16) e
 		return fmt.Errorf("internal error - destination type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = source[rowCntr]
 	}
 	
@@ -738,7 +738,7 @@ TODO: move all the handlers to their own file when we add the rest of the types
 
 func restoreSnapshotUndefined(tbl * table, snapshot_index uint16, col_index uint16) error {
 	return fmt.Errorf("internal error - undefined column type [%d].", 
-			tbl.descriptor.column_descriptors[col_index].type_constant) 
+			tbl.descriptor.ColumnDescriptors[col_index].typeConstant) 
 }
 
 
@@ -757,7 +757,7 @@ func restoreSnapshotUTF8(tbl * table, snapshot_index uint16, col_index uint16) e
 		return fmt.Errorf("internal error - source type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = source[rowCntr]
 	}
 	
@@ -777,7 +777,7 @@ func restoreSnapshotInt64(tbl * table, snapshot_index uint16, col_index uint16) 
 		return fmt.Errorf("internal error - source type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = source[rowCntr]
 	}
 	
@@ -797,7 +797,7 @@ func restoreSnapshotFloat64(tbl * table, snapshot_index uint16, col_index uint16
 		return fmt.Errorf("internal error - source type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = source[rowCntr]
 	}
 	
@@ -815,7 +815,7 @@ TODO: move all the handlers to their own file when we add the rest of the types
 
 func writeSnapshotUndefined(tbl * table, snapshot_index  uint16, col_index uint16, file * os.File) error {
 	return fmt.Errorf("internal error - undefined column type [%d].", 
-					tbl.descriptor.column_descriptors[col_index].type_constant) 
+					tbl.descriptor.ColumnDescriptors[col_index].typeConstant) 
 }
 
 
@@ -828,7 +828,7 @@ func writeSnapshotVarUTF8(tbl * table, snapshot_index  uint16, col_index uint16,
 
 
 	// Copy the data into a []byte buffer
-	buffer_length := tbl.descriptor.column_descriptors[col_index].length
+	buffer_length := tbl.descriptor.ColumnDescriptors[col_index].length
 	var buffer bytes.Buffer
 	paddedByteArray := make([]byte, buffer_length)
 
@@ -950,7 +950,7 @@ TODO: move all the handlers to their own file when we add the rest of the types
 
 func readSnapshotUndefined(tbl * table, snapshot_index uint16, col_index uint16, file * os.File) error {
 	return fmt.Errorf("internal error - undefined column type [%d].", 
-	tbl.descriptor.column_descriptors[col_index].type_constant) 
+	tbl.descriptor.ColumnDescriptors[col_index].typeConstant) 
 }
 
 // -----------------------------------------------------------------------------
@@ -963,10 +963,10 @@ func readSnapshotVarUTF8(tbl * table, snapshot_index uint16, col_index uint16, f
 		return fmt.Errorf("internal error - destination type assertion failed.") 
 	} 					
 
-	field_size := tbl.descriptor.column_descriptors[col_index].length
+	field_size := tbl.descriptor.ColumnDescriptors[col_index].length
 
 	// Make a []byte buffer to receive the data
-	file_buffer := make([]byte, tbl.descriptor.total_rows * field_size)
+	file_buffer := make([]byte, tbl.descriptor.totalRows * field_size)
 
 	// read the data from disk
 	_, err := file.Read(file_buffer)
@@ -978,7 +978,7 @@ func readSnapshotVarUTF8(tbl * table, snapshot_index uint16, col_index uint16, f
 	// copy the data to for each varchar, convert it to a string, and
 	// put that in the destination
 	
-	for row_cntr := uint64(0); row_cntr < tbl.descriptor.total_rows; row_cntr++ {
+	for row_cntr := uint64(0); row_cntr < tbl.descriptor.totalRows; row_cntr++ {
 		start := row_cntr * uint64(field_size)
 		end := start + field_size
 		str_buf := file_buffer[start : end]
@@ -1047,7 +1047,7 @@ func readSnapshotInt64(tbl * table, snapshot_index uint16, col_index uint16, fil
 	} 					
 
 	// Make a []byte buffer to receive the data
-	buffer := make([]byte, tbl.descriptor.total_rows * 8) // 8 is the size of an int64
+	buffer := make([]byte, tbl.descriptor.totalRows * 8) // 8 is the size of an int64
 
 	// read the data from disk
 //	bytes_read, err := file.Read(buffer)
@@ -1082,7 +1082,7 @@ func readSnapshotFloat64(tbl * table, snapshot_index uint16, col_index uint16, f
 	} 					
 
 	// Make a []byte buffer to receive the data
-	buffer := make([]byte, tbl.descriptor.total_rows * 8) // 8 is the size of an float64
+	buffer := make([]byte, tbl.descriptor.totalRows * 8) // 8 is the size of an float64
 
 	// read the data from disk
 //	bytes_read, err := file.Read(buffer)
@@ -1117,7 +1117,7 @@ TODO: move all the handlers to their own file when we add the rest of the types
 
 func clearSnapshotUndefined(tbl * table, snapshot_index uint16, col_index uint16) error {
 	return fmt.Errorf("internal error - undefined column type [%d].", 
-				tbl.descriptor.column_descriptors[col_index].type_constant) 
+				tbl.descriptor.ColumnDescriptors[col_index].typeConstant) 
 }
 
 func clearSnapshotUTF8(tbl * table, snapshot_index uint16, col_index uint16) error {
@@ -1127,7 +1127,7 @@ func clearSnapshotUTF8(tbl * table, snapshot_index uint16, col_index uint16) err
 		return fmt.Errorf("internal error - destination type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = ""
 	}
 	
@@ -1145,7 +1145,7 @@ func clearSnapshotInt64(tbl * table, snapshot_index uint16, col_index uint16) er
 		return fmt.Errorf("internal error - destination type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = 0
 	}
 	
@@ -1161,7 +1161,7 @@ func clearSnapshotFloat64(tbl * table, snapshot_index uint16, col_index uint16) 
 		return fmt.Errorf("internal error - destination type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = 0.0
 	}
 	
@@ -1177,7 +1177,7 @@ TODO: move all the handlers to their own file when we add the rest of the types
 
 func clearRealtimeUndefined(tbl * table, col_index uint16) error {
 	return fmt.Errorf("internal error - undefined column type [%d].", 
-				tbl.descriptor.column_descriptors[col_index].type_constant) 
+				tbl.descriptor.ColumnDescriptors[col_index].typeConstant) 
 }
 
 func clearRealtimeUTF8(tbl * table, col_index uint16) error {
@@ -1188,7 +1188,7 @@ func clearRealtimeUTF8(tbl * table, col_index uint16) error {
 		return fmt.Errorf("internal error - source type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = ""
 	}
 	
@@ -1204,7 +1204,7 @@ func clearRealtimeInt64(tbl * table, col_index uint16) error {
 		return fmt.Errorf("internal error - source type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = 0
 	}
 	
@@ -1220,7 +1220,7 @@ func clearRealtimeFloat64(tbl * table, col_index uint16) error {
 		return fmt.Errorf("internal error - source type assertion failed.") 
 	} 					
 
-	for rowCntr := uint64(0); rowCntr < tbl.descriptor.total_rows; rowCntr++ {
+	for rowCntr := uint64(0); rowCntr < tbl.descriptor.totalRows; rowCntr++ {
 		dest[rowCntr] = 0.0
 	}
 	

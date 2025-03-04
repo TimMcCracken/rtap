@@ -9,30 +9,30 @@ import (
 // Record is used to hold variants and other data used by the select, insert
 // and update functions.
 type Record struct {
-		schema_key				string
-		schema_index			uint64
-		table_key				string
-		table_index				uint64
-		lookup_column_key		string 		// The name of the column that we will use to lookup the row
-		lookup_column_index		uint16		// the index of the column that we will use to lookkup the row
-		lookup_row_key			string
-		lookup_row_index		uint64		// the index of the row we looked up
+		schemaKey				string
+		schemaIndex				uint64
+		tableKey				string
+		tableIndex				uint64
+		lookupColumnKey			string 		// The name of the column that we will use to lookup the row
+		lookupColumnIndex		uint16		// the index of the column that we will use to lookkup the row
+		lookupRowKey			string
+		lookupRowIndex			uint64		// the index of the row we looked up
 		variants				[]*variant
-		indexes_valid			bool
-		cache_timeout			uint64		// time in milliseconds
+		indexesValid			bool
+		cacheTimeout			uint64		// time in milliseconds
 } 
 	
 
 func (record * Record) init() {
 	
-	record.schema_index 		= math.MaxUint64
-	record.table_index 			= math.MaxUint64
-	record.lookup_column_index	= math.MaxUint16
-	record.lookup_row_index 	= math.MaxUint64
+	record.schemaIndex 			= math.MaxUint64
+	record.tableIndex 			= math.MaxUint64
+	record.lookupColumnIndex	= math.MaxUint16
+	record.lookupRowIndex 		= math.MaxUint64
 
-	record.indexes_valid = false
+	record.indexesValid = false
 	record.variants = nil
-	record.cache_timeout = 0
+	record.cacheTimeout = 0
 }
 
 
@@ -46,15 +46,15 @@ func NewRecord(schema_key string, table_key string, lookup_column_key string,
 	record := new(Record)
 	record.init()
 
-	record.schema_key = schema_key
-	record.table_key = table_key
-	record.lookup_column_key = lookup_column_key
-	record.lookup_row_key = lookup_row_key
-	record.cache_timeout = cache_timeout
+	record.schemaKey = schema_key
+	record.tableKey = table_key
+	record.lookupColumnKey = lookup_column_key
+	record.lookupRowKey = lookup_row_key
+	record.cacheTimeout = cache_timeout
 
 	for _, field := range fields {
 		variant := new(variant)
-		variant.column_key = field
+		variant.columnKey = field
 		record.variants = append(record.variants, variant)			
 	}
 	return record
@@ -69,18 +69,17 @@ func (record * Record) Reset(schema_key string, table_key string,
 
 	record.init()
 
-	record.schema_key = schema_key
-	record.table_key = table_key
-	record.lookup_column_key = lookup_column_key
-	record.lookup_row_key = lookup_row_key
+	record.schemaKey = schema_key
+	record.tableKey = table_key
+	record.lookupColumnKey = lookup_column_key
+	record.lookupRowKey = lookup_row_key
+	record.cacheTimeout = cache_timeout
 	
 	for _, field := range fields {
 		variant := new(variant)
-		variant.column_key = field
+		variant.columnKey = field
 		record.variants = append(record.variants, variant)			
 	}
-	record.cache_timeout = cache_timeout
-
 }
 
 
@@ -88,7 +87,7 @@ func (record * Record) Reset(schema_key string, table_key string,
 
 func (record * Record)AppendVariant(column_key string, value any){
 		variant := new(variant)
-		variant.column_key = column_key
+		variant.columnKey = column_key
 		variant.value = value
 		record.variants = append(record.variants, variant)
 }

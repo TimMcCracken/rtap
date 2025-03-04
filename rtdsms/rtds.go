@@ -6,10 +6,16 @@ import (
 //		"math"
 //		"os"
 //		"reflect"
-		"regexp"
+//		"regexp"
 //		"runtime"
 //		"time"
+//		"rtap/realm"
 )
+
+
+
+
+
 
 /* ----------------------------------------------------------------------------
 definitions:
@@ -37,14 +43,8 @@ const max_contexts		= 8		// max contexts per datastore
 
 const default_channel_depth	= 16
 
-
-
-
 const max_object_name_length	= 16
 const object_name_format = "^[a-z][a-z0-9_]*$"
-
-
-
 
 // Money type?
 // time type(s)
@@ -110,36 +110,12 @@ const SS_STATE_BUSY		= 2
 be unexported */
 
 
-func validateObjectName(name string) error {
-
-	// Validate the non-type dependent parameters in the descriptor
-	if len(name) > max_object_name_length {
-		return	fmt.Errorf("Object name is too long: %s", name)
-	}
-
-	// Check if the name contains any disallowed characters
-	regex := regexp.MustCompile(object_name_format)
-	if ! regex.MatchString(name) {
-		return 	fmt.Errorf("Object Name contains invalid characters: %s", name)
-	}	 
-	
-	return nil
-}
-
-
-
 
 
 
 
 
 type SnapshotDescriptor struct {
-	name	string
-}
-
-
-// ContextDescriptor is for future use
-type ContextDescriptor struct {
 	name	string
 }
 
@@ -156,9 +132,24 @@ func NewSnapshotDescriptor(name string) (*SnapshotDescriptor, error ){
 
 }
 
+func (sd * SnapshotDescriptor) Name() string {
+	return sd.name
+}
 
 
-func GetState(ds * datastore) string {
+
+
+
+
+// ContextDescriptor is for future use
+type ContextDescriptor struct {
+	name	string
+}
+
+
+
+
+func GetState(ds * Datastore) string {
 	switch(ds.state) {
 	case 0:
 		return "Offline"
@@ -219,23 +210,19 @@ func (ds * datastore) PrintSchema() {
   The following are the functions served by the data store loop for the 
   Datastore API and the Realm API
 -----------------------------------------------------------------------------*/
+
+/*
 func realm_dummy (r * realm, request * request) {
 	//	fmt.Printf("%s Request: Function: %d   DB: %s\n", ds.name, request.function_id, request.db_key)
 		request.err = fmt.Errorf("Function_id [%d] is not implemented.", request.function_id)
 }
-
-func datastore_dummy (ds * datastore, request * request) {
-	//	fmt.Printf("%s Request: Function: %d   DB: %s\n", ds.name, request.function_id, request.db_key)
-		request.err = fmt.Errorf("Function_id [%d] is not implemented.", request.function_id)
-}
+*/
 
 
-	
+
+/*	
 // ping() is a diagnostic function that is used bu the WatchDog timer
 func realm_ping (ds * datastore, request * request) {
 		request.err = nil
 }
-// ping() is a diagnostic function that is used bu the WatchDog timer
-func datastore_ping (ds * datastore, request * request) {
-	request.err = nil
-}
+		*/
