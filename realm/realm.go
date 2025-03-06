@@ -1,12 +1,16 @@
 package realm
 
 import (
+
 	"fmt"
 	"gorm.io/gorm"
   	"github.com/glebarez/sqlite"
 	"os"
 	"time"
-	"regexp"
+//	"regexp"
+
+	"rtap/message_q"
+	"rtap/common"
 	"rtap/rtdsms"
 	"rtap/domain"
 )
@@ -133,44 +137,49 @@ func init(){
 	}
 }
 
-type realm struct {
+type Realm struct {
 	descriptor 				realm_descriptor
 	filename				string
 	path					string
 	db						*gorm.DB
 	domains					[]*domain.Domain
-	domains_map 			map[string]int
+	domainsMap 				map[string]int
 	requests 				chan( * rtdsms.Request)
 }
 
 
+func NewRealm( filename string )( * Realm, error) {
 
-// TODO: figure out where to put a single copy of this. It is kind of
-// scattered all around
-const max_object_name_length	= 16
-const object_name_format = "^[a-z][a-z0-9_]*$"
-func validateObjectName(name string) error {
+	base := os.Getenv("rtdsms_base")
 
-	// Validate the non-type dependent parameters in the descriptor
-	if len(name) > max_object_name_length {
-		return	fmt.Errorf("Object name is too long: %s", name)
-	}
+	realm := new(Realm)
 
-	// Check if the name contains any disallowed characters
-	regex := regexp.MustCompile(object_name_format)
-	if ! regex.MatchString(name) {
-		return 	fmt.Errorf("Object Name contains invalid characters: %s", name)
-	}	 
-	
-	return nil
+	realm.path = base + "/" + filename
+	realm.filename =  base + "/" + filename + "/" + filename + ".realm"
+	realm.descriptor.realm_name = filename
+	return realm, nil
 }
 
 
 
 
-func (realm * realm) GetDatastore(domain_name string, datastore_name string) (*rtdsms.Datastore, error)  {
+func (realm * Realm)  MessageQueue(domain_name string) (* message_q.MessageQ, error) {
 
-	domain_index, ok := realm.domains_map[domain_name]
+	domain_index, ok := realm.domainsMap[domain_name]
+	if ! ok {
+		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realm_name)
+	}
+
+	return realm.domains[domain_index].MessageQueue(), nil
+}
+
+
+
+
+
+func (realm * Realm) GetDatastore(domain_name string, datastore_name string) (*rtdsms.Datastore, error)  {
+
+	domain_index, ok := realm.domainsMap[domain_name]
 	if ! ok {
 		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realm_name)
 	}
@@ -194,10 +203,10 @@ func (realm * realm) GetDatastore(domain_name string, datastore_name string) (*r
 // datastore.construct() which calls schema.construct() which calls 
 // table.construct(). 
 // -------------------------------------------------------------------------
-func (realm * realm) Construct() error  {
+func (realm * Realm) Construct() error  {
 
-	if realm.domains_map == nil {
-		realm.domains_map = make(map[string]int)
+	if realm.domainsMap == nil {
+		realm.domainsMap = make(map[string]int)
 	}
 
 //	fmt.Printf("Realm name: [%s]\n", realm.descriptor.realm_name)
@@ -230,7 +239,7 @@ func (realm * realm) Construct() error  {
 			}
 			dom.Descriptor.Domain_name = name
 			dom.Descriptor.Realm_name = realm.descriptor.realm_name
-			realm.domains_map[name] = len(realm.domains_map)
+			realm.domainsMap[name] = len(realm.domainsMap)
 			realm.domains = append(realm.domains, &dom)
 		}
     }
@@ -253,9 +262,9 @@ func (realm * realm) Construct() error  {
 /* ---------------------------------------------------------------------------
 CreateDomain
 ---------------------------------------------------------------------------- */
-func (realm * realm) CreateDomain(domain_name string) error  {
+func (realm * Realm) CreateDomain(domain_name string) error  {
 	// Validate the parameters
-	err := validateObjectName(domain_name) 
+	err := common.ValidateObjectName(domain_name) 
 		if err != nil {
 			return err
 		}
@@ -329,7 +338,7 @@ DropDomain
 CreateDataStore
 Note: Context Descriptors are for future use 
 ---------------------------------------------------------------------------- */
-func (realm * realm) CreateDatastore(	domain_name string, 
+func (realm * Realm) CreateDatastore(	domain_name string, 
 										datastore_name string, 
 										snapshot_descriptors []*rtdsms.SnapshotDescriptor , 
 										context_descriptors []*rtdsms.ContextDescriptor ) error {
@@ -347,7 +356,7 @@ func (realm * realm) CreateDatastore(	domain_name string,
 	defer sqlDB.Close()
 
 	// Validate the domain_name
-	err = validateObjectName(domain_name) 
+	err = common.ValidateObjectName(domain_name) 
 	if err != nil {
 		return err
 	}
@@ -364,13 +373,13 @@ func (realm * realm) CreateDatastore(	domain_name string,
 	
 
 	// Validate the datastore_name
-	err = validateObjectName(datastore_name) 
+	err = common.ValidateObjectName(datastore_name) 
 	if err != nil {
 		return err
 	}
 
 	for _, sd := range snapshot_descriptors {
-		err := validateObjectName(sd.Name()) 
+		err := common.ValidateObjectName(sd.Name()) 
 		if err != nil {
 			return err
 		}
@@ -378,7 +387,7 @@ func (realm * realm) CreateDatastore(	domain_name string,
 
 	/* TODO: Later
 	for _, cd := range context_descriptors {
-		err := validateObjectName(cd.name) 
+		err := ValidateObjectName(cd.name) 
 		if err != nil {
 			return err
 		}
@@ -495,7 +504,7 @@ func (realm * realm) CreateDatastore(	domain_name string,
 /* ---------------------------------------------------------------------------
 DropDataStore()
 ---------------------------------------------------------------------------- */
-func (realm * realm) DropDataStore(domain_name string, datastore_name string) error {
+func (realm * Realm) DropDataStore(domain_name string, datastore_name string) error {
 
 	return nil
 }
@@ -507,7 +516,7 @@ func (realm * realm) DropDataStore(domain_name string, datastore_name string) er
 CreateSchema
 Note: Context Descriptors are for future use 
 ---------------------------------------------------------------------------- */
-func (realm * realm) CreateSchema(	domain_name string, 
+func (realm * Realm) CreateSchema(	domain_name string, 
 										datastore_name string, 
 										schema_name string) error {
 
@@ -527,7 +536,7 @@ func (realm * realm) CreateSchema(	domain_name string,
 	// ------------------------------------------------------------------------
 	// Validate the domain name
 	// ------------------------------------------------------------------------
-	err = validateObjectName(domain_name) 
+	err = common.ValidateObjectName(domain_name) 
 	if err != nil {
 		return err
 	}
@@ -557,7 +566,7 @@ func (realm * realm) CreateSchema(	domain_name string,
 	// ------------------------------------------------------------------------
 	// Validate the datastore_name
 	// ------------------------------------------------------------------------
-	err = validateObjectName(datastore_name) 
+	err = common.ValidateObjectName(datastore_name) 
 	if err != nil {
 		return err
 	}
@@ -633,7 +642,7 @@ func (realm * realm) CreateSchema(	domain_name string,
 // -----------------------------------------------------------------------------
 // create_table() 
 // -----------------------------------------------------------------------------
-func (realm * realm) CreateTable(	domain_name string, datastore_name string, 
+func (realm * Realm) CreateTable(	domain_name string, datastore_name string, 
 								schema_name string, tbl_desc *rtdsms.TableDescriptor) error {
 
 	// Get a pointer to a table descriptor type
@@ -664,7 +673,7 @@ func (realm * realm) CreateTable(	domain_name string, datastore_name string,
 	// ------------------------------------------------------------------------
 	// Validate the domain name
 	// ------------------------------------------------------------------------
-	err = validateObjectName(domain_name) 
+	err = common.ValidateObjectName(domain_name) 
 	if err != nil {
 		return err
 	}
@@ -692,7 +701,7 @@ func (realm * realm) CreateTable(	domain_name string, datastore_name string,
 	// ------------------------------------------------------------------------
 	// Validate the datastore_name
 	// ------------------------------------------------------------------------
-	err = validateObjectName(datastore_name) 
+	err = common.ValidateObjectName(datastore_name) 
 	if err != nil {
 		return err
 	}
@@ -719,7 +728,7 @@ func (realm * realm) CreateTable(	domain_name string, datastore_name string,
 	// ------------------------------------------------------------------------
 	// Validate the schema_name
 	// ------------------------------------------------------------------------
-	err = validateObjectName(schema_name) 
+	err = common.ValidateObjectName(schema_name) 
 	if err != nil {
 		return err
 	}

@@ -18,7 +18,7 @@ package metronome
  
 import (
 	"fmt"
-	mq 		"rtap/message_q"
+	"rtap/message_q"
 	pb 		"rtap/metronome/metronome.pb"
 	proto 	"github.com/golang/protobuf/proto"
 	"time"
@@ -88,7 +88,7 @@ type Tic struct{
 
 
 
-func Metronome() {
+func Metronome(mq * message_q.MessageQ) {
 
 	// Declare teh structure for the data to be marshalled.
 	var pb_tick pb.Tick

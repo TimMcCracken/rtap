@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 	"github.com/glebarez/sqlite"
 	"rtap/rtdsms"
-//	"rtap/message_q"
+	"rtap/message_q"
 //	"os"
 //	"time"
 )
@@ -15,11 +15,19 @@ import (
 
 
 type Domain struct {
+	message_queue	message_q.MessageQ
 	Descriptor		DomainDescriptor
 	Datastores		[]*rtdsms.Datastore
 	Datastores_map 	map[string]int
 
 //	message_queue	
+}
+
+
+
+func (domain * Domain)  MessageQueue() (* message_q.MessageQ) {
+
+	return &domain.message_queue
 }
 
 

@@ -31,15 +31,15 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
-
-	"rtap/rtdsms"
+	"rtap/common"
+//	"rtap/rtdsms"
 )
 
 
 
 type Message struct{
-	buffer_size		int
-	message_length	int
+	bufferSize		int
+	messageLength	int
 	Source			string
 	Destinations	[]string
 	Data			*[]byte
@@ -49,16 +49,16 @@ type Message struct{
 // MessageQ provides the API for the message queueing system. There is one 
 // messageQ for each domain.
 // -----------------------------------------------------------------------------
-MessageQ {
+type MessageQ struct {
 	
-	var messageQueue 	chan Message
-	var scrubber		chan *[]byte
-	var bufferPool		sync.Pool
-	var receivers		map [string]chan Message
-	var total_buffers	int
-	var total_gets		int
-	var total_puts 		int
-	var total_scrubs	int
+	mq_chan		 	chan Message
+	scrubber		chan *[]byte
+	bufferPool		sync.Pool
+	receivers		map [string]chan Message
+	totalBuffers	int
+	totalGets		int
+	totalPuts 		int
+	totalScrubs		int
 }
 
 
@@ -67,32 +67,34 @@ MessageQ {
 // Start() launches the goroutines that operate and support the message_queue
 // system.
 // -----------------------------------------------------------------------------
-func (MessageQ * mq)Start() {
+func (mq * MessageQ )Start() {
 
-	if mq.MessageQ == nil {
-		messageQueue 	= make(chan Message, 256 )
+	if mq.mq_chan == nil {
+		mq.mq_chan 	= make(chan Message, 256 )
 	}
 	
 	if mq.scrubber == nil {
-		scrubber		= make(chan *[]byte, 256 )
+		mq.scrubber		= make(chan *[]byte, 256 )
 	}
 
 	if mq.receivers == nil {
 		mq. receivers = make(map[string]chan Message, 256)
 	}
 
-	if bufferPool == nil {
-		bufferPool = sync.Pool{
+	
+	if mq.bufferPool.Get() == nil {
+		mq.bufferPool = sync.Pool{
 			New: func() interface{} {
 				buf := make([]byte, 1024) // Allocate a 1KB buffer (adjust size as needed)
-				total_buffers++
+				mq.totalBuffers++
 				return &buf
 			},
 		}
 	}
+	
 
-	go messageQueueLoop()
-	go scrubberLoop()
+	go messageQueueLoop(mq)
+	go scrubberLoop(mq)
 
 	fmt.Println("message queue is started")
 }
@@ -101,18 +103,18 @@ func (MessageQ * mq)Start() {
 // -----------------------------------------------------------------------------
 // GeBuffer() returns a buffer from the buffer pool.
 // -----------------------------------------------------------------------------
-func GetBuffer() ( interface{}) {
-	total_gets++
-	fmt.Printf("Total Buffers, Gets, Puts, scrubs: %d  %d  %d  %d\n", total_buffers, total_gets, total_puts, total_scrubs)
-	return bufferPool.Get().(*[]byte)
+func (mq * MessageQ )GetBuffer() ( interface{}) {
+	mq.totalGets++
+	fmt.Printf("Total Buffers, Gets, Puts, scrubs: %d  %d  %d  %d\n", mq.totalBuffers, mq.totalGets, mq.totalPuts, mq.totalScrubs)
+	return mq.bufferPool.Get().(*[]byte)
 }
 
 // -----------------------------------------------------------------------------
 // PutBuffer() returns a buffer to the buffer pool/
 // -----------------------------------------------------------------------------
-func PutBuffer(buffer interface{}){
-	total_puts++
-	bufferPool.Put(buffer)
+func (mq * MessageQ )PutBuffer(buffer interface{}){
+	mq.totalPuts++
+	mq.bufferPool.Put(buffer)
 }
 
 
@@ -127,10 +129,10 @@ func PutBuffer(buffer interface{}){
 // started by the watch dog timer.
 //
 // -----------------------------------------------------------------------------
-func Register( name string) ( chan Message, error) { 
+func (mq * MessageQ )Register( name string) ( chan Message, error) { 
 	
 	// validate the name
-	err := rtdsms.ValidateObjectName(name)
+	err := common.ValidateObjectName(name)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid object name [%s]\n", name)
 	}
@@ -138,7 +140,7 @@ func Register( name string) ( chan Message, error) {
 	// -------------------------------------------------------------------------
 	// If the name already exists in the map, then return the pointer
 	// -------------------------------------------------------------------------
-	value, ok := receivers[name]
+	value, ok := mq.receivers[name]
 	if ok == true {
 		return value, nil
 	}
@@ -147,7 +149,7 @@ func Register( name string) ( chan Message, error) {
 	// Otherwise create a new channel and return a pointer to it.
 	// -------------------------------------------------------------------------
 	new_channel := make(chan Message)
-	receivers[name] = new_channel
+	mq.receivers[name] = new_channel
 
 	return new_channel, nil
 }
@@ -158,7 +160,7 @@ func Register( name string) ( chan Message, error) {
 // facilitates connections by external systems.
 // --------------------------------
 // ---------------------------------------------
-func Send( destinations []string, data *[]byte) error { 
+func (mq * MessageQ )Send( destinations []string, data *[]byte) error { 
 
 	// -------------------------------------------------------------------------
 	// determine the senders name
@@ -183,7 +185,7 @@ func Send( destinations []string, data *[]byte) error {
 	// -------------------------------------------------------------------------
 	// send the message to the message_q
 	// -------------------------------------------------------------------------
-	messageQueue <- msg
+	mq.mq_chan <- msg
 	return nil
 }
 
@@ -206,7 +208,7 @@ func Receive( ) (data []byte, err error) {
 //
 //------------------------------------------------------------------------------
 
-func messageQueueLoop(){
+func messageQueueLoop(mq * MessageQ){
 
 	fmt.Println("message queue loop started")
 
@@ -215,7 +217,7 @@ func messageQueueLoop(){
 	// channels as needed 
 	//--------------------------------------------------------------------------
 	for {
-        msg := <- messageQueue
+        msg := <- mq.mq_chan
     
 		switch len(msg.Destinations) {
 
@@ -224,20 +226,20 @@ func messageQueueLoop(){
 		case 1:
 
 			if msg.Destinations[0] == "*" { // True if "broadcast"
-				for _, ch := range receivers {
+				for _, ch := range mq.receivers {
 					// We need to make a copy of the message.
 					msg2 := msg
 					// get another buffer
-					buf_ptr := bufferPool.Get().(*[]byte)
+					buf_ptr := mq.bufferPool.Get().(*[]byte)
 					// copy the buffers and assign the buffer ptr
 					copy(*buf_ptr, *msg.Data)
 					*msg2.Data = *buf_ptr
 					ch <- msg2
 				}	
 				// return the original buffer to the pool
-				scrubber <- msg.Data
+				mq.scrubber <- msg.Data
 			} else { // falls here if unicast
-				ch, ok := receivers[msg.Destinations[0]]
+				ch, ok := mq.receivers[msg.Destinations[0]]
 				if ok == true {
 					ch <- msg
 				} else {
@@ -246,7 +248,7 @@ func messageQueueLoop(){
 			}
 		default: // true if multicast
 			for  _, rcvr_key := range msg.Destinations {
-				ch, ok := receivers[rcvr_key]
+				ch, ok := mq.receivers[rcvr_key]
 				if ok == true {
 					ch <- msg
 				} else {
@@ -260,17 +262,17 @@ func messageQueueLoop(){
 //------------------------------------------------------------------------------
 // scrubber loop zeroes out a buffer before returning it to the pool.
 //------------------------------------------------------------------------------
-func scrubberLoop(){
+func scrubberLoop(mq * MessageQ){
 
 //	fmt.Println("scrubber loop started")
 	for {
-        data := <- scrubber
+        data := <- mq.scrubber
 //		fmt.Printf("Scrubbing %d bytes\n", len(*data))
 		for  i := range *data {
 			(*data)[i] = 0
 		}
-		bufferPool.Put(data)
-		total_scrubs++
+		mq.bufferPool.Put(data)
+		mq.totalScrubs++
 	}
 }
 
