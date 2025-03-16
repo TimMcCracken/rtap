@@ -14,7 +14,8 @@ import(
 )
 
 
-type rtap struct {
+
+type rtap_system struct {
 	realms				[]*realm.Realm
 	realms_map 			map[string]int
 }
@@ -22,7 +23,7 @@ type rtap struct {
 // ----------------------------------------------------------------------------
 // "RTAP" is a singleton and is the root object of the RTAP system.
 // ----------------------------------------------------------------------------
-var RTAP rtap
+var RTAP rtap_system
 
 
 func Realm(realm_name string) (* realm.Realm, error) {

@@ -4,8 +4,10 @@ package rtap
 
 import (
 	"fmt"
+//	"rtap"
 //	"rtap/message_q"
 	"rtap/metronome"
+	"rtap/hmi"
 	"testing"
 )
 
@@ -22,13 +24,12 @@ func TestDownload(t *testing.T) {
 	realm, err := Realm("devscada")
 	if err != nil {
 		fmt.Printf("Error getting realm: %v", err)
-	}
+	} 
 
 	realm.Construct()
 	if err != nil {
 		fmt.Printf("Error constructing realm: %v", err)
 	}
-
 
 	mq, err := MessageQueue("devscada", "prod")
 	if err != nil {
@@ -45,6 +46,8 @@ func TestDownload(t *testing.T) {
 
 	go metronome.Metronome(mq)
 
+
+	go hmi.HmiServer()
 
 	// Loop forever, receiving from the channel
 	for {

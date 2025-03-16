@@ -1,117 +1,237 @@
+/*******************************************************************************
+hmi.go
+
+hmi.go is the main entry point of the HMI system.  There is one hmi object
+contained within each domain. 
+
+hmi_loop recives messages from and sends messages to the message_q. Messages
+recieved from the message_q may be either broadcast messages (normally from
+metronome) or unicast messages, normally received from DAC or the RTDSMS.
+
+hmi_server maintains the web sockets server, waiting for connections requests
+from clients. Each connection request creates a display_loop, that runs 
+until the client connection is closed - which normally happens when a 
+http client is terminated (browser tab closed). 
+
+hmi_loop also recives message from the display_loop established for each
+active connection. These consist of subscribe/unsubscribe messages. The HMI
+maintains a map of subscribed points for each display_loop, which is used to
+track all subscribed data points. JSON messages are exchanged over the 
+web socket connection between the client and the hti_loop.
+
+
+
+
+
+
+*******************************************************************************/
+
+
+// Copyright 2015 The Gorilla WebSocket Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+////go:build ignore
+////+build ignore
+
 package hmi
 
 import (
+	_ "embed"
+	"encoding/json"
+//	"flag"
 	"fmt"
+	"html/template"
+	"log"
+	"maps"
 	"net/http"
-	"rtap/dbapi" // This will move when we move the HTTP server to its own package
-	// This will move when we move the HTTP server to its own package
+	"time"
+	"github.com/gorilla/websocket"
 )
 
-/*
-func (d *display) write(w http.ResponseWriter, req *http.Request) {
 
 
-}
-*/
-
-var testdisplay customDisplay
-
-var testtabular tabularDisplay
-
-func init() {
-
-	// initialize the tabular display
-
-	testtabular.title = "Test Tabular #1"
-
-	testtabular.table.width = 1000
-	testtabular.color = "white"
-	testtabular.background_color = "black"
-	testtabular.font_family = "arial,helvetica,san serif"
-
-	testtabular.table.border_color = "white"
-	testtabular.table.border_style = "solid" // make this use a list
-	testtabular.table.border_size = 2
-	testtabular.table.border_collapse = true
-
-	testtabular.table.heading_color = "blue"
-	testtabular.table.heading_background_color = "gray"
-
-	testtabular.table.odd_color = "#C4A484"
-	testtabular.table.even_color = "lightgreen" //"#90EE90"
-
-	testtabular.table.color = "black"
-
-	testtabular.table.columns = append(testtabular.table.columns, column{"myname", "Column 0", 100, "left", false})
-	testtabular.table.columns = append(testtabular.table.columns, column{"myname2", "Column 1", 200, "right", false})
-	testtabular.table.columns = append(testtabular.table.columns, column{"myname3", "Column 2", 400, "left", false})
-	testtabular.table.columns = append(testtabular.table.columns, column{"myname4", "Column 3", 150, "left", false})
-	testtabular.table.columns = append(testtabular.table.columns, column{"myname5", "Column 4", 150, "left", false})
-
-	// Initialize the custom display
-	testdisplay.background = None
-	testdisplay.color = Cyan
-	testdisplay.width = 900
-	testdisplay.height = 600
-	testdisplay.style = "font-family:sans-serif;font-size:12px;"
-
-	x := 5
-	testdisplay.elements = make([]element, x)
-	testdisplay.elements[0] = element{element_type: Label, left: 100, top: 50, width: 100, height: 25, content: "Label1"}
-	testdisplay.elements[1] = element{element_type: Input, input_type: Button, left: 100, top: 100, width: 100, height: 25, draggable: true, title: "Help Me!", content: "Label2", style: "color:red;", value: "Click Me!"}
-	testdisplay.elements[2] = element{element_type: Input, input_type: Text, left: 100, top: 150, width: 100, height: 25, style: "color:blue;", placeholder: "Enter something here!", title: "real help!", autofocus: true}
-	testdisplay.elements[3] = element{element_type: Label, left: 100, top: 200, width: 100, height: 25, content: "Label4", style: "color:blue;"}
-	testdisplay.elements[4] = element{element_type: Label, left: 100, top: 250, width: 100, height: 25, content: "Label5", style: "background-color:gray;"}
-
-	testdisplay.elements[4].events = make([]event, 1)
-	testdisplay.elements[4].events[0].event_type = OnClick
-	testdisplay.elements[4].events[0].script = "alert(\"I am an alert box!\");"
-}
+var upgrader = websocket.Upgrader{} // use default options
 
 /*
-func hello(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("hello handler")
-	fmt.Fprintf(w, "hello\n")
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all connections
+	},
 }
-func headers(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("headers handler")
-	for name, headers := range req.Header {
-		for _, h := range headers {
-			fmt.Fprintf(w, "%v: %v\n", name, h)
-		}
+	*/
+
+
+type HMIMessage struct {
+	Command		string `json:"command"`
+	TargetID	string	`json:"targetID"`
+	Data		map[string]string `json:"data"`
+}
+
+
+
+func setDocumentTitle( conn *websocket.Conn, title string) {
+	var msg HMIMessage 
+
+	msg.Command = "SetDocumentTitle"
+	msg.TargetID = ""
+	msg.Data = make(map[string]string)
+	msg.Data["title"] = title
+
+	jmsg, err := json.Marshal(&msg)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return
 	}
-}*/
-
-// ----------------------------------------------------------------------------
-// tabularHandler() parses the http.Request and selects the tabular display
-// to show.
-// ----------------------------------------------------------------------------
-func tabularHandler(w http.ResponseWriter, req *http.Request) {
-
-	testtabular.show(w, req)
+	err = conn.WriteMessage(1, []byte(jmsg))
+	if err != nil {
+		log.Println("Error writing JSON message:", err)
+		return
+	}
 }
 
-// ----------------------------------------------------------------------------
-// customeHandler() parses the http.Request and selects the custom display
-// to show.
-// ----------------------------------------------------------------------------
-func customHandler(w http.ResponseWriter, req *http.Request) {
+func setValue( conn *websocket.Conn, targetID string, value string) {
+	var msg HMIMessage 
 
-	testdisplay.show(w, req)
+	msg.Command = "SetValue"
+	msg.TargetID = targetID
+	msg.Data = make(map[string]string)
+	msg.Data["value"] = value
 
+	jmsg, err := json.Marshal(&msg)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return
+	}
+	err = conn.WriteMessage(1, []byte(jmsg))
+	if err != nil {
+		log.Println("Error writing JSON message:", err)
+		return
+	}
 }
 
-func Serve() {
 
-	fmt.Println("starting serve")
+func setAttributes( conn *websocket.Conn, targetID string, attributes map[string]string) {
+	var msg HMIMessage 
 
-	//http.HandleFunc("/hello", hello)
-	//http.HandleFunc("/headers", headers)
-	http.HandleFunc("/custom", customHandler)
-	http.HandleFunc("/tabular", tabularHandler)
-	http.HandleFunc("/dbapi/", dbapi.DBapiHandler)
+	msg.Command = "SetAttributes"
+	msg.TargetID = targetID
+	msg.Data = attributes
 
-	http.ListenAndServe(":8090", nil)
-
-	fmt.Println("exiting serve")
+	jmsg, err := json.Marshal(&msg)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return
+	}
+	err = conn.WriteMessage(1, []byte(jmsg))
+	if err != nil {
+		log.Println("Error writing JSON message:", err)
+		return
+	}
 }
+
+func appendElement( conn *websocket.Conn, targetID string, tag string, attributes map[string]string) {
+	var msg HMIMessage 
+
+	msg.Command = "AppendElement"
+	msg.TargetID = targetID
+	msg.Data = make(map[string]string)
+	msg.Data["tag"]=tag
+	maps.Copy( msg.Data, attributes)
+
+	jmsg, err := json.Marshal(&msg)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return
+	}
+	err = conn.WriteMessage(1, []byte(jmsg))
+	if err != nil {
+		log.Println("Error writing JSON message:", err)
+		return
+	}
+}
+
+func setStyle( conn *websocket.Conn, targetID string, properties map[string]string) {
+	var msg HMIMessage 
+
+	msg.Command = "SetStyle"
+	msg.TargetID = targetID
+	msg.Data = properties
+	jmsg, err := json.Marshal(&msg)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return
+	}
+	err = conn.WriteMessage(1, []byte(jmsg))
+	if err != nil {
+		log.Println("Error writing JSON message:", err)
+		return
+	}
+}
+
+
+
+
+func wsHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error upgrading connection:", err)
+		return
+	}
+	defer conn.Close()
+
+	// Temporary code for testing	
+	setDocumentTitle(conn, "The damn title!")
+
+	attributes := make(map[string]string)
+	attributes["title"] = "This is an another add in"
+	attributes["tag"] = "input"
+	appendElement(conn, "body","input", attributes)
+	clear(attributes)
+
+	attributes["title"] = "Hello Again from the world"
+	setAttributes(conn, "a1", attributes)
+	clear(attributes)
+
+
+	attributes["background-color"] = "lightgrey"
+	attributes["color"] = "red"
+	attributes["font-weight"] = "bold"
+
+	setStyle(conn, "a1", attributes)
+
+	for {
+
+	//	attributes["value"] = time.Now().Format("2006-01-02 15:04:05")
+		setValue(conn, "a1", time.Now().Format("2006-01-02 15:04:05"))
+		time.Sleep(1 * time.Second)
+	}
+
+	// end temporary code
+}
+
+func home(w http.ResponseWriter, r *http.Request) {
+	homeTemplate.Execute(w, "ws://"+r.Host+"/ws")
+}
+
+
+
+func HmiServer() {
+	
+//	flag.Parse()
+//	log.SetFlags(0)
+
+	
+	http.HandleFunc("/", home)
+	http.HandleFunc("/ws", wsHandler)
+
+	serverAddress := ":8080"
+	fmt.Println("WebSocket server started on", serverAddress)
+	log.Fatal(http.ListenAndServe(serverAddress, nil))
+}
+
+
+//go:embed home.html
+var homeHTML string
+
+var homeTemplate = template.Must(template.New("").Parse(homeHTML))

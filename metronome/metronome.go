@@ -96,6 +96,8 @@ func Metronome(mq * message_q.MessageQ) {
 	// fill the structure with data.
 	for {
 
+		fmt.Printf(".")
+
 		// get the current time.
 		now := time.Now()
 		
