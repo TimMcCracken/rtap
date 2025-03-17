@@ -19,8 +19,6 @@ type Domain struct {
 	Descriptor		DomainDescriptor
 	Datastores		[]*rtdsms.Datastore
 	Datastores_map 	map[string]int
-
-//	message_queue	
 }
 
 

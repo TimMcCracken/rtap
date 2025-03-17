@@ -161,6 +161,16 @@ func NewRealm( filename string )( * Realm, error) {
 }
 
 
+func (realm * Realm)  Domain(domain_name string) (* domain.Domain, error) {
+
+	domain_index, ok := realm.domainsMap[domain_name]
+	if ! ok {
+		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realm_name)
+	}
+
+	return realm.domains[domain_index], nil
+}
+
 
 
 func (realm * Realm)  MessageQueue(domain_name string) (* message_q.MessageQ, error) {

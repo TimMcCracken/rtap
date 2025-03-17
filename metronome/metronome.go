@@ -90,13 +90,13 @@ type Tic struct{
 
 func Metronome(mq * message_q.MessageQ) {
 
-	// Declare teh structure for the data to be marshalled.
+	// Declare the structure for the data to be marshalled.
 	var pb_tick pb.Tick
 
 	// fill the structure with data.
 	for {
 
-		fmt.Printf(".")
+		//fmt.Printf(".")
 
 		// get the current time.
 		now := time.Now()

@@ -38,196 +38,59 @@ package hmi
 
 import (
 	_ "embed"
-	"encoding/json"
+//	"encoding/json"
 //	"flag"
 	"fmt"
 	"html/template"
 	"log"
-	"maps"
+//	"maps"
 	"net/http"
-	"time"
+//	"time"
 	"github.com/gorilla/websocket"
+//	"rtap/hmi/domterm"
+	"rtap/domain"
+//	"rtap/message_q"
+//	"rtap/hmi/widget"
 )
 
 
 
-var upgrader = websocket.Upgrader{} // use default options
+//var upgrader = websocket.Upgrader{} // use default options
 
-/*
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Allow all connections
 	},
 }
-	*/
 
 
-type HMIMessage struct {
-	Command		string `json:"command"`
-	TargetID	string	`json:"targetID"`
-	Data		map[string]string `json:"data"`
+
+
+
+func home(w http.ResponseWriter, r *http.Request) {
+	homeTemplate.Execute(w, "ws://"+r.Host+"/testpage")
 }
 
 
 
-func setDocumentTitle( conn *websocket.Conn, title string) {
-	var msg HMIMessage 
-
-	msg.Command = "SetDocumentTitle"
-	msg.TargetID = ""
-	msg.Data = make(map[string]string)
-	msg.Data["title"] = title
-
-	jmsg, err := json.Marshal(&msg)
-	if err != nil {
-		log.Println("Error marshalling message:", err)
-		return
-	}
-	err = conn.WriteMessage(1, []byte(jmsg))
-	if err != nil {
-		log.Println("Error writing JSON message:", err)
-		return
-	}
-}
-
-func setValue( conn *websocket.Conn, targetID string, value string) {
-	var msg HMIMessage 
-
-	msg.Command = "SetValue"
-	msg.TargetID = targetID
-	msg.Data = make(map[string]string)
-	msg.Data["value"] = value
-
-	jmsg, err := json.Marshal(&msg)
-	if err != nil {
-		log.Println("Error marshalling message:", err)
-		return
-	}
-	err = conn.WriteMessage(1, []byte(jmsg))
-	if err != nil {
-		log.Println("Error writing JSON message:", err)
-		return
-	}
-}
-
-
-func setAttributes( conn *websocket.Conn, targetID string, attributes map[string]string) {
-	var msg HMIMessage 
-
-	msg.Command = "SetAttributes"
-	msg.TargetID = targetID
-	msg.Data = attributes
-
-	jmsg, err := json.Marshal(&msg)
-	if err != nil {
-		log.Println("Error marshalling message:", err)
-		return
-	}
-	err = conn.WriteMessage(1, []byte(jmsg))
-	if err != nil {
-		log.Println("Error writing JSON message:", err)
-		return
-	}
-}
-
-func appendElement( conn *websocket.Conn, targetID string, tag string, attributes map[string]string) {
-	var msg HMIMessage 
-
-	msg.Command = "AppendElement"
-	msg.TargetID = targetID
-	msg.Data = make(map[string]string)
-	msg.Data["tag"]=tag
-	maps.Copy( msg.Data, attributes)
-
-	jmsg, err := json.Marshal(&msg)
-	if err != nil {
-		log.Println("Error marshalling message:", err)
-		return
-	}
-	err = conn.WriteMessage(1, []byte(jmsg))
-	if err != nil {
-		log.Println("Error writing JSON message:", err)
-		return
-	}
-}
-
-func setStyle( conn *websocket.Conn, targetID string, properties map[string]string) {
-	var msg HMIMessage 
-
-	msg.Command = "SetStyle"
-	msg.TargetID = targetID
-	msg.Data = properties
-	jmsg, err := json.Marshal(&msg)
-	if err != nil {
-		log.Println("Error marshalling message:", err)
-		return
-	}
-	err = conn.WriteMessage(1, []byte(jmsg))
-	if err != nil {
-		log.Println("Error writing JSON message:", err)
-		return
-	}
-}
-
-
-
-
-func wsHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Error upgrading connection:", err)
-		return
-	}
-	defer conn.Close()
-
-	// Temporary code for testing	
-	setDocumentTitle(conn, "The damn title!")
-
-	attributes := make(map[string]string)
-	attributes["title"] = "This is an another add in"
-	attributes["tag"] = "input"
-	appendElement(conn, "body","input", attributes)
-	clear(attributes)
-
-	attributes["title"] = "Hello Again from the world"
-	setAttributes(conn, "a1", attributes)
-	clear(attributes)
-
-
-	attributes["background-color"] = "lightgrey"
-	attributes["color"] = "red"
-	attributes["font-weight"] = "bold"
-
-	setStyle(conn, "a1", attributes)
-
-	for {
-
-	//	attributes["value"] = time.Now().Format("2006-01-02 15:04:05")
-		setValue(conn, "a1", time.Now().Format("2006-01-02 15:04:05"))
-		time.Sleep(1 * time.Second)
-	}
-
-	// end temporary code
-}
-
-func home(w http.ResponseWriter, r *http.Request) {
-	homeTemplate.Execute(w, "ws://"+r.Host+"/ws")
-}
-
-
-
-func HmiServer() {
+func HmiServer(domain *domain.Domain) {
 	
-//	flag.Parse()
-//	log.SetFlags(0)
+	// Get the domain messageQueue
+	domain_mq := domain.MessageQueue()
+	domain_mq = domain_mq
 
-	
+	// Build the private messageQueu that we will use
+	// to send messages to the websocket goroutines
+
 	http.HandleFunc("/", home)
-	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/testpage", testPageHandler)
 
+	// Start the HMI Server loop.
 	serverAddress := ":8080"
 	fmt.Println("WebSocket server started on", serverAddress)
 	log.Fatal(http.ListenAndServe(serverAddress, nil))
+
 }
 
 

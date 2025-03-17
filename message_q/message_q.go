@@ -47,7 +47,7 @@ type Message struct{
 
 // -----------------------------------------------------------------------------
 // MessageQ provides the API for the message queueing system. There is one 
-// messageQ for each domain.
+// messageQ for each domain. 
 // -----------------------------------------------------------------------------
 type MessageQ struct {
 	
@@ -105,7 +105,7 @@ func (mq * MessageQ )Start() {
 // -----------------------------------------------------------------------------
 func (mq * MessageQ )GetBuffer() ( interface{}) {
 	mq.totalGets++
-	fmt.Printf("Total Buffers, Gets, Puts, scrubs: %d  %d  %d  %d\n", mq.totalBuffers, mq.totalGets, mq.totalPuts, mq.totalScrubs)
+//	fmt.Printf("Total Buffers, Gets, Puts, scrubs: %d  %d  %d  %d\n", mq.totalBuffers, mq.totalGets, mq.totalPuts, mq.totalScrubs)
 	return mq.bufferPool.Get().(*[]byte)
 }
 
@@ -125,7 +125,7 @@ func (mq * MessageQ )PutBuffer(buffer interface{}){
 // 
 // The function checks if a channel already esists with that name. If yes, it
 // returns the existing pointer, otherwise it creates a new pointer. The pointer
-// is most l;kely to exist if the previous gorotuine crashed and a new one was
+// is most likely to exist if the previous gorotuine crashed and a new one was
 // started by the watch dog timer.
 //
 // -----------------------------------------------------------------------------

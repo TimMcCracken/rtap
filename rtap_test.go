@@ -42,21 +42,18 @@ func TestDownload(t *testing.T) {
 	if err != nil {
 		fmt.Printf("Error registering: %v", err)
 	}
-	ch = ch
+	//ch = ch
 
 	go metronome.Metronome(mq)
 
-
-	go hmi.HmiServer()
+	domain, err := realm.Domain("prod")
+	go hmi.HmiServer(domain)
 
 	// Loop forever, receiving from the channel
 	for {
 		msg := <- ch
-		fmt.Printf("X Received msg: source [%s] destination [%s] Payload length: %d\n", msg.Source, msg.Destinations, len(*msg.Data))
-		
-
-	//	err = proto.Unmarshall()
-
+		//	fmt.Printf("X Received msg: source [%s] destination [%s] Payload length: %d\n", msg.Source, msg.Destinations, len(*msg.Data))
+		//	err = proto.Unmarshall()
 
 		// ---------------------------------------------------------------------
 		// return the buffer to the pool
