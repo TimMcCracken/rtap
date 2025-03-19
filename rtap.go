@@ -16,8 +16,10 @@ import(
 
 
 type rtap_system struct {
-	realms				[]*realm.Realm
-	realms_map 			map[string]int
+	realms			[]*realm.Realm
+	realms_map 		map[string]int
+	hmi				hmi.HMI
+
 }
 
 // ----------------------------------------------------------------------------
@@ -99,4 +101,7 @@ func init(){
 
 		}
 	}
+
+	server_address := GET FROM THE SQLITE DATABASE
+	RTAP.hmi.Start(server_address)
 }

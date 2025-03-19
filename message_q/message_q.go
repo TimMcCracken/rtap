@@ -30,8 +30,10 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
-	"sync"
+	bp "rtap/buffer_pool"
 	"rtap/common"
+
+//	"rtap/domain"
 //	"rtap/rtdsms"
 )
 
@@ -50,15 +52,9 @@ type Message struct{
 // messageQ for each domain. 
 // -----------------------------------------------------------------------------
 type MessageQ struct {
-	
+	bp			*	bp.BufferPool
 	mq_chan		 	chan Message
-	scrubber		chan *[]byte
-	bufferPool		sync.Pool
 	receivers		map [string]chan Message
-	totalBuffers	int
-	totalGets		int
-	totalPuts 		int
-	totalScrubs		int
 }
 
 
@@ -67,55 +63,25 @@ type MessageQ struct {
 // Start() launches the goroutines that operate and support the message_queue
 // system.
 // -----------------------------------------------------------------------------
-func (mq * MessageQ )Start() {
+func (mq * MessageQ )Start(bp * bp.BufferPool) {
+
+	mq.bp = bp
 
 	if mq.mq_chan == nil {
 		mq.mq_chan 	= make(chan Message, 256 )
 	}
 	
-	if mq.scrubber == nil {
-		mq.scrubber		= make(chan *[]byte, 256 )
-	}
+
 
 	if mq.receivers == nil {
 		mq. receivers = make(map[string]chan Message, 256)
 	}
 
-	
-	if mq.bufferPool.Get() == nil {
-		mq.bufferPool = sync.Pool{
-			New: func() interface{} {
-				buf := make([]byte, 1024) // Allocate a 1KB buffer (adjust size as needed)
-				mq.totalBuffers++
-				return &buf
-			},
-		}
-	}
-	
-
 	go messageQueueLoop(mq)
-	go scrubberLoop(mq)
 
 	fmt.Println("message queue is started")
 }
 
-
-// -----------------------------------------------------------------------------
-// GeBuffer() returns a buffer from the buffer pool.
-// -----------------------------------------------------------------------------
-func (mq * MessageQ )GetBuffer() ( interface{}) {
-	mq.totalGets++
-//	fmt.Printf("Total Buffers, Gets, Puts, scrubs: %d  %d  %d  %d\n", mq.totalBuffers, mq.totalGets, mq.totalPuts, mq.totalScrubs)
-	return mq.bufferPool.Get().(*[]byte)
-}
-
-// -----------------------------------------------------------------------------
-// PutBuffer() returns a buffer to the buffer pool/
-// -----------------------------------------------------------------------------
-func (mq * MessageQ )PutBuffer(buffer interface{}){
-	mq.totalPuts++
-	mq.bufferPool.Put(buffer)
-}
 
 
 // -----------------------------------------------------------------------------
@@ -230,14 +196,14 @@ func messageQueueLoop(mq * MessageQ){
 					// We need to make a copy of the message.
 					msg2 := msg
 					// get another buffer
-					buf_ptr := mq.bufferPool.Get().(*[]byte)
+					buf_ptr := mq.bp.Get(1024).(*[]byte)   // VAR IGNORED FOR NOW
 					// copy the buffers and assign the buffer ptr
 					copy(*buf_ptr, *msg.Data)
 					*msg2.Data = *buf_ptr
 					ch <- msg2
 				}	
 				// return the original buffer to the pool
-				mq.scrubber <- msg.Data
+				mq.bp.Put(msg.Data)
 			} else { // falls here if unicast
 				ch, ok := mq.receivers[msg.Destinations[0]]
 				if ok == true {
@@ -259,21 +225,5 @@ func messageQueueLoop(mq * MessageQ){
 	}
 }
 
-//------------------------------------------------------------------------------
-// scrubber loop zeroes out a buffer before returning it to the pool.
-//------------------------------------------------------------------------------
-func scrubberLoop(mq * MessageQ){
-
-//	fmt.Println("scrubber loop started")
-	for {
-        data := <- mq.scrubber
-//		fmt.Printf("Scrubbing %d bytes\n", len(*data))
-		for  i := range *data {
-			(*data)[i] = 0
-		}
-		mq.bufferPool.Put(data)
-		mq.totalScrubs++
-	}
-}
 
 

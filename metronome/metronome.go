@@ -18,7 +18,8 @@ package metronome
  
 import (
 	"fmt"
-	"rtap/message_q"
+	bp "rtap/buffer_pool"
+	mq "rtap/message_q"
 	pb 		"rtap/metronome/metronome.pb"
 	proto 	"github.com/golang/protobuf/proto"
 	"time"
@@ -88,7 +89,7 @@ type Tic struct{
 
 
 
-func Metronome(mq * message_q.MessageQ) {
+func Metronome(bp * bp.BufferPool, mq * mq.MessageQ) {
 
 	// Declare the structure for the data to be marshalled.
 	var pb_tick pb.Tick
@@ -142,7 +143,7 @@ func Metronome(mq * message_q.MessageQ) {
 		// -------------------------------------------------------------------------
 		// Get a buffer from the pool
 		// -------------------------------------------------------------------------
-		buf_ptr := mq.GetBuffer().(*[]byte)
+		buf_ptr := bp.Get(1024).(*[]byte)  // fixed size for now. May change later
 		
 		// -------------------------------------------------------------------------
 		// Marshall the data and copy it into the buffer

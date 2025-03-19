@@ -7,7 +7,10 @@ import (
 	"gorm.io/gorm"
 	"github.com/glebarez/sqlite"
 	"rtap/rtdsms"
+	bp "rtap/buffer_pool"
 	"rtap/message_q"
+	"rtap/metronome"
+//	"rtap/hmi"
 //	"os"
 //	"time"
 )
@@ -15,18 +18,31 @@ import (
 
 
 type Domain struct {
-	message_queue	message_q.MessageQ
 	Descriptor		DomainDescriptor
+	messageQueue	message_q.MessageQ
 	Datastores		[]*rtdsms.Datastore
 	Datastores_map 	map[string]int
+
+	metronome		metronome.Metronome
+	bufferPool		bp.BufferPool
 }
 
 
+
+func (domain * Domain) Start() {
+	bufferPool.Start()
+	messageQueue.Start(&BufferPool)
+
+	metronome.Start()
+
+}
 
 func (domain * Domain)  MessageQueue() (* message_q.MessageQ) {
 
 	return &domain.message_queue
 }
+
+
 
 
 

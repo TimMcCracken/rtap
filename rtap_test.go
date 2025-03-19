@@ -36,7 +36,7 @@ func TestDownload(t *testing.T) {
 		fmt.Printf("Error getting message queue: %v", err)
 	}
 
-	mq.Start()
+
 
 	ch, err := mq.Register("mychannel")
 	if err != nil {
@@ -44,10 +44,11 @@ func TestDownload(t *testing.T) {
 	}
 	//ch = ch
 
-	go metronome.Metronome(mq)
+	
 
 	domain, err := realm.Domain("prod")
-	go hmi.HmiServer(domain)
+
+
 
 	// Loop forever, receiving from the channel
 	for {

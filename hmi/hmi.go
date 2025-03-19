@@ -4,11 +4,16 @@ hmi.go
 hmi.go is the main entry point of the HMI system.  There is one hmi object
 contained within each domain. 
 
-hmi_loop recives messages from and sends messages to the message_q. Messages
-recieved from the message_q may be either broadcast messages (normally from
-metronome) or unicast messages, normally received from DAC or the RTDSMS.
+HMI uses a publish/subscribe system that operates similar to the message_q
+but allows each of the websocket goroutines to subscribe to the objects that
+then need to keep their displays upto date.
 
-hmi_server maintains the web sockets server, waiting for connections requests
+
+hmiLoop recives messages from the domain message_q. Messages recieved from the 
+message_q may be either broadcast messages (normally from metronome) or unicast
+messages, normally received from DACC or the RTDSMS.
+
+hmiServer maintains the web sockets server, waiting for connections requests
 from clients. Each connection request creates a display_loop, that runs 
 until the client connection is closed - which normally happens when a 
 http client is terminated (browser tab closed). 
@@ -48,9 +53,11 @@ import (
 //	"time"
 	"github.com/gorilla/websocket"
 //	"rtap/hmi/domterm"
-	"rtap/domain"
+//	"rtap/domain"
+//	"rtap/buffer_pool"
 //	"rtap/message_q"
-//	"rtap/hmi/widget"
+
+	//	"rtap/hmi/widget"
 )
 
 
@@ -74,12 +81,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 
 
-func HmiServer(domain *domain.Domain) {
+func HmiServer(server_address string) {
 	
-	// Get the domain messageQueue
-	domain_mq := domain.MessageQueue()
-	domain_mq = domain_mq
-
 	// Build the private messageQueu that we will use
 	// to send messages to the websocket goroutines
 
@@ -87,9 +90,8 @@ func HmiServer(domain *domain.Domain) {
 	http.HandleFunc("/testpage", testPageHandler)
 
 	// Start the HMI Server loop.
-	serverAddress := ":8080"
-	fmt.Println("WebSocket server started on", serverAddress)
-	log.Fatal(http.ListenAndServe(serverAddress, nil))
+	fmt.Println("WebSocket server started on", server_address)
+	log.Fatal(http.ListenAndServe(server_address, nil))
 
 }
 
