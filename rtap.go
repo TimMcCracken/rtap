@@ -9,6 +9,7 @@ import(
 // 	"github.com/glebarez/sqlite"
 	"log"
 	"os"
+	"rtap/hmi"
 	"rtap/message_q"
 	"rtap/realm"
 )
@@ -102,6 +103,6 @@ func init(){
 		}
 	}
 
-	server_address := GET FROM THE SQLITE DATABASE
+	server_address := ":8080" // TODO: GET FROM THE SQLITE DATABASE
 	RTAP.hmi.Start(server_address)
 }

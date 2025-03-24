@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"github.com/glebarez/sqlite"
+	"rtap/dacc"
 	"rtap/rtdsms"
 	bp "rtap/buffer_pool"
 	"rtap/message_q"
@@ -23,6 +24,7 @@ type Domain struct {
 	Datastores		[]*rtdsms.Datastore
 	Datastores_map 	map[string]int
 
+	dacc			dacc.DACC
 	metronome		metronome.Metronome
 	bufferPool		bp.BufferPool
 }
@@ -30,16 +32,17 @@ type Domain struct {
 
 
 func (domain * Domain) Start() {
-	bufferPool.Start()
-	messageQueue.Start(&BufferPool)
+	
+	domain.bufferPool.Start()
+	domain.messageQueue.Start(&domain.bufferPool)
+	domain.metronome.Start(&domain.bufferPool, &domain.messageQueue)
 
-	metronome.Start()
-
+	domain.dacc.Start(&domain.bufferPool, &domain.messageQueue)
 }
 
 func (domain * Domain)  MessageQueue() (* message_q.MessageQ) {
 
-	return &domain.message_queue
+	return &domain.messageQueue
 }
 
 

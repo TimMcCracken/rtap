@@ -1,0 +1,33 @@
+/*******************************************************************************
+metronome.pb
+
+This package provides the protocol buffer source code for the analog update 
+message that is sent by DACC to HMI (and perhaps others) via message_q.
+
+Rev Date     By  Reason
+--- -------- --- ---------------------------------------------------------------
+001			 tdm  original
+
+*******************************************************************************/
+
+
+// command line to generate this file: protoc -I=. --go_out=. analog.proto
+
+
+syntax = "proto3";
+
+package analog.pb;
+
+option go_package = "./analog.pb";
+
+message analogChange {
+
+    double	value			= 1;
+	string  valueColor		= 2;
+	string  valueBackground	= 3;
+	string  stateName		= 4;
+	string  stateColor		= 5;
+	string  stateBackground = 6;
+	string  unackAlarm		= 7;
+
+}

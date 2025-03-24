@@ -41,27 +41,26 @@ func (bp * BufferPool )Start() {
 		bp.scrubber		= make(chan *[]byte, 256 )
 	}
 
+//	if bp.pool == nil {
+		bp.pool = sync.Pool{
+			New: func() interface{} {
+				buf := make([]byte, 1024) // Allocate a 1KB buffer (adjust size as needed)
+				bp.totalBuffers++
+			return &buf
+			},
+		}
+//	}
 	go scrubberLoop(bp)
+
 }
 
 // -----------------------------------------------------------------------------
 // GeBuffer() returns a buffer from the buffer pool.
 // -----------------------------------------------------------------------------
-func (bp * BufferPool )Get(size int) ( interface{}) {
+ 	func (bp * BufferPool ) Get(size int) ( interface{}) {
 	bp.totalGets++
+
 	fmt.Printf("Total Buffers, Gets, Puts, scrubs: %d  %d  %d  %d\n", bp.totalBuffers, bp.totalGets, bp.totalPuts, bp.totalScrubs)
-	
-	/* ???
-	if mq.bp.Get() == nil {
-		mq.bp = sync.Pool{
-			New: func() interface{} {
-				buf := make([]byte, 1024) // Allocate a 1KB buffer (adjust size as needed)
-				mq.totalBuffers++
-				return &buf
-			},
-		}
-	} */
-	
 	
 	return bp.pool.Get().(*[]byte)
 }

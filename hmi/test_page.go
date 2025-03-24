@@ -21,7 +21,22 @@ import (
 // testPageHandler()
 // -----------------------------------------------------------------------------
 func testPageHandler(w http.ResponseWriter, r *http.Request) {
+
 	
+	// authenticate
+
+	// Get the realm, if any. make smart enought to default if only 1
+
+	// Get the domain, if any. make smart enought tp default if only 1
+
+	// is the user authorized?
+
+	// Do we need to determine the type of display?
+
+	// Show the display
+
+
+
 	fmt.Printf("Starting testpage handler.")
 	
 	conn, err := upgrader.Upgrade(w, r, nil)

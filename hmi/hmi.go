@@ -1,8 +1,7 @@
 /*******************************************************************************
 hmi.go
 
-hmi.go is the main entry point of the HMI system.  There is one hmi object
-contained within each domain. 
+hmi.go is ...
 
 HMI uses a publish/subscribe system that operates similar to the message_q
 but allows each of the websocket goroutines to subscribe to the objects that
@@ -32,13 +31,6 @@ web socket connection between the client and the hti_loop.
 *******************************************************************************/
 
 
-// Copyright 2015 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-////go:build ignore
-////+build ignore
-
 package hmi
 
 import (
@@ -53,9 +45,9 @@ import (
 //	"time"
 	"github.com/gorilla/websocket"
 //	"rtap/hmi/domterm"
-//	"rtap/domain"
-//	"rtap/buffer_pool"
-//	"rtap/message_q"
+//	"rtap/domain"/	
+bp "rtap/buffer_pool"
+mq "rtap/message_q"
 
 	//	"rtap/hmi/widget"
 )
@@ -72,6 +64,16 @@ var upgrader = websocket.Upgrader{
 }
 
 
+type HMI struct {
+
+}
+
+
+func (hmi * HMI) Start( bp * bp.BufferPool, mq * mq.MessageQ, serverAddress string){
+
+	go hmi.HMILoop(bp, mq)
+	go hmi.HMIServer(serverAddress)
+}
 
 
 
@@ -80,8 +82,10 @@ func home(w http.ResponseWriter, r *http.Request) {
 }
 
 
-
-func HmiServer(server_address string) {
+// -----------------------------------------------------------------------------
+// HMIServer is the web sockets listener
+// -----------------------------------------------------------------------------
+func (hmi * HMI) HMIServer(serverAddress string) {
 	
 	// Build the private messageQueu that we will use
 	// to send messages to the websocket goroutines
@@ -90,12 +94,46 @@ func HmiServer(server_address string) {
 	http.HandleFunc("/testpage", testPageHandler)
 
 	// Start the HMI Server loop.
-	fmt.Println("WebSocket server started on", server_address)
-	log.Fatal(http.ListenAndServe(server_address, nil))
+	fmt.Println("WebSocket server started on", serverAddress)
+	log.Fatal(http.ListenAndServe(serverAddress, nil))
 
 }
 
 
+// -----------------------------------------------------------------------------
+// HMILoop listens for messages from the MessageQ as well as from the HMIWorker
+// goroutines that are spawned by HMI loop. When it receives a message from the
+// message_q, it sends it to the worker go routines. When it receives a msg from
+// a worker, it .....
+// -----------------------------------------------------------------------------
+func (hmi * HMI) HMILoop( bp * bp.BufferPool, mq * mq.MessageQ) {
+
+	// TODO FIX THIS ERROR HANDLER
+	ch, err := mq.Register("HMI") 
+	if err != nil {
+		fmt.Printf("ERROR! Invalid object name [HMI]\n")
+		return
+	}
+	
+	//var msg mq.Message
+	
+	for {
+		msg := <- ch
+
+		fmt.Printf("Got an HMI msg.\n")
+
+		msg = msg
+	
+	}
+
+
+}
+
+
+
+
+
+// The following line is a go directive, not a comment!
 //go:embed home.html
 var homeHTML string
 

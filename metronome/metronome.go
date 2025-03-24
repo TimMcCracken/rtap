@@ -85,11 +85,16 @@ type Tic struct{
 }
 */
 
+type Metronome struct {
+
+} 
+
+func (m * Metronome) Start(bp * bp.BufferPool, mq * mq.MessageQ) {
+	go metronomeLoop(bp, mq)
+}
 
 
-
-
-func Metronome(bp * bp.BufferPool, mq * mq.MessageQ) {
+func metronomeLoop(bp * bp.BufferPool, mq * mq.MessageQ) {
 
 	// Declare the structure for the data to be marshalled.
 	var pb_tick pb.Tick
@@ -148,7 +153,6 @@ func Metronome(bp * bp.BufferPool, mq * mq.MessageQ) {
 		// -------------------------------------------------------------------------
 		// Marshall the data and copy it into the buffer
 		// -------------------------------------------------------------------------
-
 		data, err := proto.Marshal(&pb_tick)
 		if err != nil {
 			// TODO: fix this
