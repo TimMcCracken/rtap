@@ -156,8 +156,18 @@ func NewRealm( filename string )( * Realm, error) {
 
 	realm.path = base + "/" + filename
 	realm.filename =  base + "/" + filename + "/" + filename + ".realm"
-	realm.descriptor.realm_name = filename
+	realm.descriptor.realmName = filename
 	return realm, nil
+}
+
+func (realm * Realm) Start() {
+
+	fmt.Printf("Starting realm [%s]\n", realm.descriptor.realmName)
+
+
+	for _, domain := range realm.domains {
+		domain.Start()
+	}
 }
 
 
@@ -165,7 +175,7 @@ func (realm * Realm)  Domain(domain_name string) (* domain.Domain, error) {
 
 	domain_index, ok := realm.domainsMap[domain_name]
 	if ! ok {
-		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realm_name)
+		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realmName)
 	}
 
 	return realm.domains[domain_index], nil
@@ -177,7 +187,7 @@ func (realm * Realm)  MessageQueue(domain_name string) (* message_q.MessageQ, er
 
 	domain_index, ok := realm.domainsMap[domain_name]
 	if ! ok {
-		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realm_name)
+		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realmName)
 	}
 
 	return realm.domains[domain_index].MessageQueue(), nil
@@ -191,12 +201,12 @@ func (realm * Realm) GetDatastore(domain_name string, datastore_name string) (*r
 
 	domain_index, ok := realm.domainsMap[domain_name]
 	if ! ok {
-		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realm_name)
+		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realmName)
 	}
 
 	datastore_index, ok := realm.domains[domain_index].Datastores_map[datastore_name]
 	if ! ok {
-		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realm_name)
+		return nil, fmt.Errorf("Domain [%s] does not exist in realm [%s].", domain_name, realm.descriptor.realmName)
 	}
 
 	return realm.domains[domain_index].Datastores[datastore_index], nil
@@ -247,8 +257,8 @@ func (realm * Realm) Construct() error  {
         } else {
 			dom := domain.Domain {
 			}
-			dom.Descriptor.Domain_name = name
-			dom.Descriptor.Realm_name = realm.descriptor.realm_name
+			dom.Descriptor.DomainName = name
+			dom.Descriptor.RealmName = realm.descriptor.realmName
 			realm.domainsMap[name] = len(realm.domainsMap)
 			realm.domains = append(realm.domains, &dom)
 		}

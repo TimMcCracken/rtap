@@ -88,14 +88,15 @@ func init() {
 
 
 
-func (dc *AnalogValue) Put(conn *websocket.Conn){
+func (av *AnalogValue) Put(conn *websocket.Conn){
 
 	// Append the basic element
 	attributes := make(map[string]string)
 	attributes["title"] = fmt.Sprintf("Analog Value:")
 	attributes["tag"] 	= "output"
-	attributes["id"] 	= dc.DisplayID
+	attributes["id"] 	= av.DisplayID
 	attributes["style"] = "position: absolute;"
+
 	domterm.AppendElement(conn, "body","input", attributes)
 	clear(attributes)
 
@@ -104,16 +105,16 @@ func (dc *AnalogValue) Put(conn *websocket.Conn){
 	attributes["font"]			= "Consolas"
 	attributes["font-weight"]	= "bold"
 	attributes["font-size"]		= "32px"
-	attributes["top"]		= fmt.Sprintf("%dpx", dc.Top)
-	attributes["left"]		= fmt.Sprintf("%dpx", dc.Left)
+	attributes["top"]		= fmt.Sprintf("%dpx", av.Top)
+	attributes["left"]		= fmt.Sprintf("%dpx", av.Left)
 
-	if dc.Height != 0 {
-		attributes["height"]	= fmt.Sprintf("%dpx", dc.Height)
+	if av.Height != 0 {
+		attributes["height"]	= fmt.Sprintf("%dpx", av.Height)
 	}
-	if dc.Width != 0 {
-		attributes["width"]		= fmt.Sprintf("%dpx", dc.Width)
+	if av.Width != 0 {
+		attributes["width"]		= fmt.Sprintf("%dpx", av.Width)
 	}
-	domterm.SetStyle(conn, dc.DisplayID, attributes)
+	domterm.SetStyle(conn, av.DisplayID, attributes)
 
 }
 

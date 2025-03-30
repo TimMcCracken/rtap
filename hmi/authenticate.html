@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html id="html">
+<head>
+<meta charset="utf-8">
+
+<script src="/js/domterm.js"></script>  
+
+<script>  
+
+
+
+
+
+
+
+window.addEventListener("load", function(evt) {
+
+
+
+// login dialog boc
+
+const showBtn = document.getElementById("show-dialog");
+const dialog = document.getElementById("dialog");
+const jsCloseBtn = dialog.querySelector("#js-close");
+
+showBtn.addEventListener("click", () => {
+  dialog.showModal();
+});
+
+jsCloseBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  dialog.close();
+});
+
+// end dialog box
+
+
+
+    var ws;
+
+    // Initialize the function map
+    const functionMap = new Map();
+    functionMap.set("SetDocumentTitle", setDocumentTitle);
+    functionMap.set("SetAttributes", setAttributes);
+    functionMap.set("AppendElement", appendElement);
+    functionMap.set("SetValue", setValue);
+    functionMap.set("SetStyle", setStyle);
+
+    // remove these 2 lines later
+    var output = document.getElementById("output");
+    var input = document.getElementById("input");
+
+    ws = new WebSocket("{{.}}");
+        
+    // --------------------------------------------------------------------
+    // Open event handler
+    // --------------------------------------------------------------------
+    ws.onopen = function(evt) {
+        console.log("Websocket opened.");
+    }
+
+    // --------------------------------------------------------------------
+    // Close event handler
+    // --------------------------------------------------------------------
+    ws.onclose = function(evt) {
+        console.log("Websocket closed.");
+        ws = null;
+    }
+        
+    // --------------------------------------------------------------------
+    // Message event handler
+    // --------------------------------------------------------------------
+    ws.onmessage = function(evt) {
+        console.log("Received: " + evt.data);
+        const msg = JSON.parse(evt.data);
+
+        cmdFunc = functionMap.get(msg.command)
+        if ( cmdFunc == null ) {
+            console.log("Command not found: ", msg.command)
+            return
+        }
+        cmdFunc(msg);
+    }
+
+    // --------------------------------------------------------------------
+    // Error event handler
+    // --------------------------------------------------------------------
+    ws.onerror = function(evt) {
+        console.log("Websocket ERROR: " + evt.data);
+    }
+    return false;
+
+
+
+
+
+
+});
+
+
+
+</script>
+</head>
+<body id="body">
+
+    <dialog id="dialog">
+        <form method="dialog">
+          <p>
+            <label>
+              Favorite animal:
+              <input type="text" required />
+            </label>
+          </p>
+          <div>
+            <input type="submit" id="normal-close" value="Normal close" />
+            <input
+              type="submit"
+              id="novalidate-close"
+              value="Novalidate close"
+              formnovalidate />
+            <input type="submit" id="js-close" value="JS close" />
+          </div>
+        </form>
+      </dialog>
+      <p>
+        <button id="show-dialog">Show the dialog</button>
+      </p>
+      <output></output>
+
+
+</body>
+</html>

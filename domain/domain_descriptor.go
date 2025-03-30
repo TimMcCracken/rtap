@@ -13,8 +13,8 @@ import (
 
 
 type DomainDescriptor struct {
-	Realm_name	string
-	Domain_name	string
+	RealmName	string
+	DomainName	string
 
 }
 

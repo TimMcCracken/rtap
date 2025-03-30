@@ -13,14 +13,14 @@ import (
 //	"github.com/gorilla/websocket"
 	"rtap/hmi/domterm"
 //	"rtap/message_q"
-	"rtap/hmi/widget"
+//	"rtap/hmi/widget"
 )
 
 
 // -----------------------------------------------------------------------------
 // testPageHandler()
 // -----------------------------------------------------------------------------
-func testPageHandler(w http.ResponseWriter, r *http.Request) {
+func wsChooserHandler(w http.ResponseWriter, r *http.Request) {
 
 	
 	// authenticate
@@ -37,7 +37,7 @@ func testPageHandler(w http.ResponseWriter, r *http.Request) {
 
 
 
-	fmt.Printf("Starting testpage handler.")
+	fmt.Printf("Starting chooser handler.")
 	
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -53,27 +53,16 @@ func testPageHandler(w http.ResponseWriter, r *http.Request) {
 	domterm.SetStyle( conn, "html", attributes)
 	clear(attributes)
 
-
+/*
 	lbl1 := widget.Label  {
 		Top : 50,
 		Left : 50,
 		Width : 200,
 		Parent : "body",
-		Content : "Local",
+		Content : "Realm:",
 	}
-	lbl1.Init(nil, "", "", "lbl_101")
+	lbl1.Init("lbl_101")
 	lbl1.Put(conn)
-
-	dc1 := widget.DigitalClock  {
-		Top : 100,
-		Left : 50,
-		Width : 200,
-		Timezone : "Local",
-		Parent : "body",
-	}
-
-	dc1.Init(nil, "", "", "dc_101")
-	dc1.Put(conn)
 
 
 	lbl2 := widget.Label  {
@@ -81,45 +70,11 @@ func testPageHandler(w http.ResponseWriter, r *http.Request) {
 		Left : 300,
 		Width : 200,
 		Parent : "body",
-		Content : "New York",
+		Content : "Domain",
 	}
-	lbl2.Init(nil, "", "", "lbl_102")
+	lbl2.Init("lbl_102")
 	lbl2.Put(conn)
-	
-	dc2 := widget.DigitalClock  {
-		Top : 100,
-		Left : 300,
-		Width : 200,
-		Timezone : "America/New_York",
-		Parent : "body",
-	}
-
-	dc2.Init(nil, "", "", "dc_102")
-	dc2.Put(conn)
-
-
-	lbl3 := widget.Label  {
-		Top : 50,
-		Left : 550,
-		Width : 200,
-		Parent : "body",
-		Content : "UTC",
-	}
-	lbl3.Init(nil, "", "", "lbl_103")
-	lbl3.Put(conn)
-
-	dc3 := widget.DigitalClock  {
-		Top : 100,
-		Left : 550,
-		Width : 200,
-		Timezone : "UTC",
-		Parent : "body",
-	}
-
-	dc3.Init(nil, "", "", "dc_103")
-	dc3.Put(conn)
-
-
+*/
 
 /*
 	select {
@@ -135,13 +90,12 @@ func testPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 */
 
+
 	for {
-		dc1.Update(conn)
-		dc2.Update(conn)
-		dc3.Update(conn)
 	
 		time.Sleep(1 * time.Second)
 	}
+
 
 }
 

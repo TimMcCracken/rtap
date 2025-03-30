@@ -45,9 +45,9 @@ import (
 //	"time"
 	"github.com/gorilla/websocket"
 //	"rtap/hmi/domterm"
-//	"rtap/domain"/	
-bp "rtap/buffer_pool"
-mq "rtap/message_q"
+//	"rtap/domain"	
+//	bp "rtap/buffer_pool"
+//	mq "rtap/message_q"
 
 	//	"rtap/hmi/widget"
 )
@@ -69,16 +69,31 @@ type HMI struct {
 }
 
 
-func (hmi * HMI) Start( bp * bp.BufferPool, mq * mq.MessageQ, serverAddress string){
 
-	go hmi.HMILoop(bp, mq)
+
+func (hmi * HMI) Start( serverAddress string){
 	go hmi.HMIServer(serverAddress)
 }
 
 
 
-func home(w http.ResponseWriter, r *http.Request) {
-	homeTemplate.Execute(w, "ws://"+r.Host+"/testpage")
+func homeStub(w http.ResponseWriter, r *http.Request) {
+
+//	w.Write([]byte("WTF"))
+	authenticateTemplate.Execute(w, "ws://" +r.Host+ "/ws/authenticate")
+}
+
+func chooserStub(w http.ResponseWriter, r *http.Request) {
+	chooserTemplate.Execute(w, "ws://" +r.Host+ "/ws/chooser")
+}
+
+func displayStub(w http.ResponseWriter, r *http.Request) {
+	displayTemplate.Execute(w, "ws://" +r.Host+ "/ws/display")
+}
+
+
+func domtermHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(jsDomterm))
 }
 
 
@@ -90,8 +105,20 @@ func (hmi * HMI) HMIServer(serverAddress string) {
 	// Build the private messageQueu that we will use
 	// to send messages to the websocket goroutines
 
-	http.HandleFunc("/", home)
-	http.HandleFunc("/testpage", testPageHandler)
+	http.HandleFunc("/", homeStub)
+	http.HandleFunc("/ws/authenticate", wsAuthenticateHandler)
+
+
+	http.HandleFunc("/chooser", chooserStub)
+	http.HandleFunc("/ws/chooser", wsChooserHandler)
+
+
+	http.HandleFunc("/display", displayStub)
+	http.HandleFunc("/ws/display", wsDisplayHandler)
+
+
+	http.HandleFunc("/js/domterm.js", domtermHandler)
+
 
 	// Start the HMI Server loop.
 	fmt.Println("WebSocket server started on", serverAddress)
@@ -100,41 +127,24 @@ func (hmi * HMI) HMIServer(serverAddress string) {
 }
 
 
-// -----------------------------------------------------------------------------
-// HMILoop listens for messages from the MessageQ as well as from the HMIWorker
-// goroutines that are spawned by HMI loop. When it receives a message from the
-// message_q, it sends it to the worker go routines. When it receives a msg from
-// a worker, it .....
-// -----------------------------------------------------------------------------
-func (hmi * HMI) HMILoop( bp * bp.BufferPool, mq * mq.MessageQ) {
-
-	// TODO FIX THIS ERROR HANDLER
-	ch, err := mq.Register("HMI") 
-	if err != nil {
-		fmt.Printf("ERROR! Invalid object name [HMI]\n")
-		return
-	}
-	
-	//var msg mq.Message
-	
-	for {
-		msg := <- ch
-
-		fmt.Printf("Got an HMI msg.\n")
-
-		msg = msg
-	
-	}
-
-
-}
 
 
 
+// The following commented lines are go directives, not a comment!
+
+//go:embed authenticate.html
+var authenticate 	string
+
+//go:embed chooser.html
+var chooser			string
+
+//go:embed display.html
+var display_html			string
+
+//go:embed domterm.js
+var  jsDomterm			string
 
 
-// The following line is a go directive, not a comment!
-//go:embed home.html
-var homeHTML string
-
-var homeTemplate = template.Must(template.New("").Parse(homeHTML))
+var authenticateTemplate 	= template.Must(template.New("").Parse(authenticate))
+var chooserTemplate 		= template.Must(template.New("chooser").Parse(chooser))
+var displayTemplate 		= template.Must(template.New("display").Parse(display_html))

@@ -26,7 +26,7 @@ import (
 //	"rtap/hmi/domterm"
 //	"strconv"
 //	"time"
-	"gorm.io/gorm"
+//	"gorm.io/gorm"
 //	"github.com/glebarez/sqlite"
 	"github.com/gorilla/websocket"
 )
@@ -40,22 +40,24 @@ import (
 // -----------------------------------------------------------------------------
 
 
-type widget interface {
+type Widget interface {
 
 	// Init() initializes all the data in the widget. 
 	// conn is a connection to a sqlite file that contains the descriptor(s)
 	// descriptor is the name (key) of the descriptor(s)
 	// rtdata is used to locate the data in the database
-	Init(db *gorm.DB, descriptor string, rtdata string, display_id string)	
+
+	//	Init(display_id string)	 probably going to delete this
 
 
 	// Put() sends all the DOM commands to create the widgets in the display
-	Put( conn *websocket.Conn )	
+	Show( conn *websocket.Conn )	
 	
 	// Update() causes the widget to read all the data sources and update 
 	// display elements as required
 	Update( conn *websocket.Conn )
 
+	
 }
 
 

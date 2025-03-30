@@ -1,11 +1,19 @@
-<!DOCTYPE html>
-<html id="html">
-<head>
-<meta charset="utf-8">
-<script>  
+
+
 
 // ----------------------------------------------------------------------------
-// SetDocumentTitle
+// Initialize the function map
+// ----------------------------------------------------------------------------
+var InitializeFunctionMap = function(functionMap){
+    functionMap.set("SetDocumentTitle", setDocumentTitle);
+    functionMap.set("SetAttributes", setAttributes);
+    functionMap.set("AppendElement", appendElement);
+    functionMap.set("SetValue", setValue);
+    functionMap.set("SetStyle", setStyle);
+}
+
+// ----------------------------------------------------------------------------
+// SetDocumentTitle()
 // ----------------------------------------------------------------------------
 var setDocumentTitle = function(msg){
 
@@ -157,66 +165,28 @@ var setStyle = function(msg){
 
 
 
+// ----------------------------------------------------------------------------
+// sendEvent()
+// ----------------------------------------------------------------------------
+var sendMouseEvent = function(event){
 
-window.addEventListener("load", function(evt) {
+    const e = new Object();  
 
-    var ws;
+    e.type = event.type
+ //   e.view = event.view
+    e.id = event.target.id
+    e.current_id = event.currentTarget.id    
+    e.isTrusted = event.isTrusted
+    e.button = event.button //0=left, 1=middle, 2=right
+    e.altKey = event.altKey
+    e.ctrlKey = event.ctrlKey
+    e.shiftKey = event.shiftKey
+    e.metaKey = event.metaKey
 
-    // Initialize the function map
-    const functionMap = new Map();
-    functionMap.set("SetDocumentTitle", setDocumentTitle);
-    functionMap.set("SetAttributes", setAttributes);
-    functionMap.set("AppendElement", appendElement);
-    functionMap.set("SetValue", setValue);
-    functionMap.set("SetStyle", setStyle);
 
-    // remove these 2 lines later
-    var output = document.getElementById("output");
-    var input = document.getElementById("input");
+//    console.log(event);
+    const jsonMessage = JSON.stringify(e);
+    ws.send(jsonMessage);
 
-    ws = new WebSocket("{{.}}");
-        
-    // --------------------------------------------------------------------
-    // Open event handler
-    // --------------------------------------------------------------------
-    ws.onopen = function(evt) {
-        console.log("Websocket opened.");
-    }
-
-    // --------------------------------------------------------------------
-    // Close event handler
-    // --------------------------------------------------------------------
-    ws.onclose = function(evt) {
-        console.log("Websocket closed.");
-        ws = null;
-    }
-        
-    // --------------------------------------------------------------------
-    // Message event handler
-    // --------------------------------------------------------------------
-    ws.onmessage = function(evt) {
-        console.log("Received: " + evt.data);
-        const msg = JSON.parse(evt.data);
-
-        cmdFunc = functionMap.get(msg.command)
-        if ( cmdFunc == null ) {
-            console.log("Command not found: ", msg.command)
-            return
-        }
-        cmdFunc(msg);
-    }
-
-    // --------------------------------------------------------------------
-    // Error event handler
-    // --------------------------------------------------------------------
-    ws.onerror = function(evt) {
-        console.log("Websocket ERROR: " + evt.data);
-    }
-    return false;
-});
-</script>
-</head>
-<body id="body">
-    <h2>Home</h2>
-</body>
-</html>
+    console.log("sent mouse event.")
+}

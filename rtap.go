@@ -20,13 +20,31 @@ type rtap_system struct {
 	realms			[]*realm.Realm
 	realms_map 		map[string]int
 	hmi				hmi.HMI
-
 }
 
 // ----------------------------------------------------------------------------
 // "RTAP" is a singleton and is the root object of the RTAP system.
 // ----------------------------------------------------------------------------
 var RTAP rtap_system
+
+
+// Start starts up the entire system. 
+func (rtap * rtap_system) Start(serverAddress string) {
+
+	// Start all the realms, which will start all the domains.
+
+
+	for _, realm := range rtap.realms {
+		realm.Start()
+	}
+
+
+	// Start the websocket server
+	rtap.hmi.Start(":8080")
+
+}
+
+
 
 
 func Realm(realm_name string) (* realm.Realm, error) {
@@ -103,6 +121,6 @@ func init(){
 		}
 	}
 
-	server_address := ":8080" // TODO: GET FROM THE SQLITE DATABASE
-	RTAP.hmi.Start(server_address)
+	serverAddress := ":8080" // TODO: GET FROM THE SQLITE DATABASE
+	RTAP.Start(serverAddress)
 }

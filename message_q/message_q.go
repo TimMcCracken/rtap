@@ -31,7 +31,7 @@ import (
 	"path/filepath"
 	"runtime"
 	bp "rtap/buffer_pool"
-	"rtap/common"
+//	"rtap/common"
 
 //	"rtap/domain"
 //	"rtap/rtdsms"
@@ -97,11 +97,11 @@ func (mq * MessageQ )Start(bp * bp.BufferPool) {
 // -----------------------------------------------------------------------------
 func (mq * MessageQ )Register( name string) ( chan Message, error) { 
 	
-	// validate the name
-	err := common.ValidateObjectName(name)
-	if err != nil {
-		return nil, fmt.Errorf("Invalid object name [%s]\n", name)
-	}
+	// validate the name may want to allow more characters here
+//	err := common.ValidateObjectName(name)
+//	if err != nil {
+//		return nil, fmt.Errorf("Invalid object name [%s]\n", name)
+//	}
 
 	// -------------------------------------------------------------------------
 	// If the name already exists in the map, then return the pointer

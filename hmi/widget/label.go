@@ -11,14 +11,14 @@ import (
 	"fmt"
 	"rtap/hmi/domterm"
 	"time"
-	"gorm.io/gorm"
+//	"gorm.io/gorm"
 	"github.com/gorilla/websocket"
 )
 
 
 type Label struct {
 	Global		domterm.GlobalAttributes
-	DisplayID	string
+	DisplayID	string 
 	Parent		string
 	Content		string
 	Top			int
@@ -35,14 +35,16 @@ type Label struct {
 	lastValue	string 
 }
 
-func (dc *Label) Init(db *gorm.DB, descriptor string, rtdata string, display_id string){
+/* probably going to delete this
+func (lbl *Label) Init(display_id string){
 
-	dc.DisplayID = display_id
+	lbl.DisplayID = display_id
 
 	//TODO: read from database
 }
+*/
 
-func (lbl *Label) Put(conn *websocket.Conn){
+func (lbl *Label) Show(conn *websocket.Conn){
 
 	// Append the basic element
 	attributes := make(map[string]string)

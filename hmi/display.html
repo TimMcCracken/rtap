@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html id="html">
+<head>
+    <meta charset="utf-8">
+    <script src="/js/domterm.js"></script>  
+    <script>  
+
+
+
+var ws;
+
+
+window.addEventListener("load", function(evt) {
+
+    const functionMap = new Map();
+    ws = new WebSocket("{{.}}");
+
+    // --------------------------------------------------------------------
+    // Initialize the function map
+    // --------------------------------------------------------------------
+    InitializeFunctionMap(functionMap)
+
+    // --------------------------------------------------------------------
+    // Open event handler
+    // --------------------------------------------------------------------
+    ws.onopen = function(evt) {
+        console.log("Websocket opened.");
+    }
+
+    // --------------------------------------------------------------------
+    // Close event handler
+    // --------------------------------------------------------------------
+    ws.onclose = function(evt) {
+        console.log("Websocket closed.");
+        ws = null;
+    }
+        
+    // --------------------------------------------------------------------
+    // Message event handler
+    // --------------------------------------------------------------------
+    ws.onmessage = function(evt) {
+        console.log("Received: " + evt.data);
+        const msg = JSON.parse(evt.data);
+
+        cmdFunc = functionMap.get(msg.command)
+        if ( cmdFunc == null ) {
+            console.log("Command not found: ", msg.command)
+            return
+        }
+        cmdFunc(msg);
+    }
+
+    // --------------------------------------------------------------------
+    // Error event handler
+    // --------------------------------------------------------------------
+    ws.onerror = function(evt) {
+        console.log("Websocket ERROR: " + evt.data);
+    }
+    return false;
+});
+</script>
+</head>
+<body id="body">
+    <h2>Display</h2>
+</body>
+</html>
