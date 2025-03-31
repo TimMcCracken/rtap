@@ -6,12 +6,25 @@
 package widget
 
 
+
+
+
+/*
+[[--
+	dc1 = display:NewDigitalClock("body", 100, 50, 200, 0, 1, "Local" )
+	
+    dc2 = display:NewDigitalClock("body", 100, 300, 200, 0, 1, "New York" ) 
+	
+    dc3 = display:NewDigitalClock("body", 100, 550, 200, 0, 1, "UTC" )  ]]
+
+*/
 import (
 	_ "embed"
 	"fmt"
 	"rtap/hmi/domterm"
 	"time"
 //	"gorm.io/gorm"
+	"github.com/yuin/gopher-lua"
 	"github.com/gorilla/websocket"
 )
 
@@ -36,27 +49,30 @@ type DigitalClock struct {
 	lastValue	string 
 }
 
-/*
-func (dc *DigitalClock) Init(display_id string){
+// -----------------------------------------------------------------------------
+// Lua support stuff
+// -----------------------------------------------------------------------------
+const luaDigitalClockTypeName = "digitalClock"
 
-	dc.DisplayID = display_id
+// -----------------------------------------------------------------------------
+// Registers my person type to given L.
+// -----------------------------------------------------------------------------
+func RegisterDigitalClockType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaDigitalClockTypeName)
+	L.SetGlobal("digitalClock", mt)
+	// static attributes
+	 //   L.SetField(mt, "new", L.NewFunction(newDisplay))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), digitalClockMethods))
+}
 
-	//TODO: read frin database
-
-
-	// Permanent code
-	if dc.Timezone == "" {
-		dc.Timezone = "Local"
-	}
-
-	tzLocation, err := time.LoadLocation(dc.Timezone)
-	dc.tzLocation = tzLocation
-	if err != nil {
-		dc.Timezone = "Local"
-		dc.title = fmt.Sprintf("%s: %v", dc.Timezone, err)
-	}
-
-} */
+// -----------------------------------------------------------------------------
+// DigitalClockMethods table
+// -----------------------------------------------------------------------------
+var digitalClockMethods = map[string]lua.LGFunction{
+ //   "newLabel": luaNewLabel,
+ //   "show" : luaShow,
+}
 
 
 // ----------------------------------------------------------------------------
@@ -82,6 +98,7 @@ func (dc *DigitalClock) Init(id string, parent string, top int, left int, width 
 	dc.Width = width
 	dc.Height = height
 	dc.ZIndex = zIndex
+	dc.Timezone = content
 
 	if dc.Timezone == "" {
 		dc.Timezone = "Local"
@@ -108,11 +125,8 @@ func (dc *DigitalClock) Show(conn *websocket.Conn){
 
 	attributes["onclick"] = "sendMouseEvent(event)"
 
-
 	domterm.AppendElement(conn, "body","input", attributes)
 	clear(attributes)
-
-
 
 	// set the styles.
 	attributes["text-align"]	= "center"
@@ -130,6 +144,8 @@ func (dc *DigitalClock) Show(conn *websocket.Conn){
 	}
 	domterm.SetStyle(conn, dc.DisplayID, attributes)
 
+	// remove this later
+	domterm.SetValue(conn, dc.DisplayID, defaultTimeFormat)
 }
 
 func (dc *DigitalClock) Update(conn *websocket.Conn){
@@ -157,3 +173,8 @@ func (dc *DigitalClock) Update(conn *websocket.Conn){
 
 }
 
+
+func (dc *DigitalClock) ClientEvent(data any) {
+
+	fmt.Printf("received clock event %v\n", data)	
+}

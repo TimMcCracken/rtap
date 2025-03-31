@@ -9,39 +9,44 @@ import (
 	"log"
 //	"maps"
 	"net/http"
-	"time"
+//	 
+	"github.com/yuin/gopher-lua"
 	"github.com/gorilla/websocket"
 	"rtap/hmi/domterm"
 	mq "rtap/message_q"
 	"rtap/hmi/widget"
 )
 
-type display struct {
+//go:embed display_test.lua
+var  display_test string
+
+
+
+type Display struct {
 	widgetMap map[string]widget.Widget
 }
 
 
-func (d * display) NewLabel(parent string, top int, left int, width int, height int, zIndex int, content string ) (widget.Label, error) {
+func (d * Display) NewLabel(parent string, top int, left int, width int, height int, zIndex int, content string ) (*widget.Label, error) {
 
-	newLabel := widget.Label  {
-		Parent 	: parent,
-		Top 	: top,
-		Left 	: left,
-		Width 	: width,
-		Height 	: height,
-		ZIndex	: zIndex,
-		Content : content,
-	}
+	lbl := new( widget.Label)
 
 	// make up an ID
-	newLabel.DisplayID = fmt.Sprintf("lbl_%d", len(d.widgetMap))
+	displayID := fmt.Sprintf("lbl_%d", len(d.widgetMap))
+
+	err := lbl.Init(displayID, parent, top, left, width, height, zIndex, content)
+	if err != nil {
+		return lbl, err
+	}
+
 	// add to the map
-	d.widgetMap[newLabel.DisplayID] = &newLabel
+	d.widgetMap[lbl.DisplayID] = lbl
+
 	// return the new label and error code
-	return newLabel, nil
+	return lbl, nil
 }
 
-func (d * display) NewDigitalClock(parent string, top int, left int, width int, height int, zIndex int, content string ) (*widget.DigitalClock, error) {
+func (d * Display) NewDigitalClock(parent string, top int, left int, width int, height int, zIndex int, content string ) (*widget.DigitalClock, error) {
 
 	dc := new( widget.DigitalClock)
 
@@ -66,7 +71,7 @@ func (d * display) NewDigitalClock(parent string, top int, left int, width int, 
 // -----------------------------------------------------------------------------
 // Show() should be called after creating all the display objects
 // -----------------------------------------------------------------------------
-func (d * display) Show(conn *websocket.Conn) {
+func (d * Display) Show(conn *websocket.Conn) {
 
 	for _, widget := range d.widgetMap {
 		widget.Show(conn)
@@ -81,10 +86,7 @@ func (d * display) Show(conn *websocket.Conn) {
 // -----------------------------------------------------------------------------
 func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 
-	display := display{
-		widgetMap : make(map[string]widget.Widget),
-	}
-
+	fmt.Println("Starting display handler.")
 
 	// authenticate the connection
 
@@ -92,15 +94,33 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the domain, if any. make smart enought tp default if only 1
 
-	// is the user authorized?
-
-	// Do we need to determine the type of display?
-
-	// Show the display
 
 
+	// -------------------------------------------------------------------------
+	// Create a display object
+	// -------------------------------------------------------------------------
+	display := Display{
+		widgetMap : make(map[string]widget.Widget),
+	}
 
-	fmt.Printf("Starting display handler.")
+
+	// -------------------------------------------------------------------------
+	// Create a lua state
+	// -------------------------------------------------------------------------
+	L := lua.NewState()
+	defer L.Close()
+	
+	registerDisplayType(L)
+	widget.RegisterLabelType(L)
+	widget.RegisterDigitalClockType(L)
+
+	// Add it to Lua
+	ud := L.NewUserData()
+	ud.Value = &display
+	L.SetMetatable(ud, L.GetTypeMetatable("display"))
+	L.Push(ud)
+	L.SetGlobal("display", ud)
+
 	
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -131,6 +151,7 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 				log.Println("Error reading message:", err)
 			} else {
 				fmt.Printf("Message Type %v\n", msgtype)
+				
 				payload = payload
 				msgtype = msgtype
 	
@@ -138,6 +159,16 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+
+
+	fmt.Println("Starting lua.")
+	if err := L.DoString(display_test); err != nil {
+
+		fmt.Printf("Lua Error: %v\n", err)
+
+		//panic(err)
+	}
+	fmt.Println("Finished Lua.")
 
 
 
@@ -152,7 +183,7 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	domterm.SetStyle( conn, "html", attributes)
 	clear(attributes)
 
-
+/*
 	display.NewLabel("body", 50, 50, 200, 0, 0, "Local" )
 	display.NewLabel("body", 50, 300, 200, 0, 0, "America/New_York" )
 	display.NewLabel("body", 50, 550, 200, 0, 0, "UTC" )
@@ -163,15 +194,19 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	dc1.Timezone = "New York"
 	dc3, _ := display.NewDigitalClock("body", 100, 550, 200, 0, 1, "" ) 
 	dc1.Timezone = "UTC"
-
+*/
 
 
 
 	// -------------------------------------------------------------------------
 	// Send all the display objects to the client browser
 	// -------------------------------------------------------------------------
+
+	fmt.Println("starting show()")
+
 	display.Show(conn)
 
+	fmt.Println("finished show()")
 
 
 
@@ -180,15 +215,18 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	// ------------------------------------
 	// the following goroutine is test code
 	// ------------------------------------
+	/*
 	go func() {
 
 		for {
-			dc1.Update(conn)
-			dc2.Update(conn)
-			dc3.Update(conn)
+	//		dc1.Update(conn)
+	//		dc2.Update(conn)
+	//		dc3.Update(conn)
 			time.Sleep(1 * time.Second)
 		}
 	}()
+	*/
+
 
 	
 	// -------------------------------------------------------------------------
@@ -197,25 +235,37 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	// -------------------------------------------------------------------------
 	for {
 		select {
-		// ---------------------------------------------------------------------
-		// These will be events sent from RTAP via the messageQ and HMITask
-		// ---------------------------------------------------------------------
+			// ----------------------------------------------------------------
+			// These will be events sent from RTAP via the messageQ and HMITask
+			// ----------------------------------------------------------------
 			case hmiMsg := <- hmiChan:
         	fmt.Println("received msqgq", hmiMsg)
       
 
-		// ---------------------------------------------------------------------
-		// These will be events sent from the client browser
-		// ---------------------------------------------------------------------
+			// ----------------------------------------------------------------
+			// These will be events sent from the client browser
+			// ----------------------------------------------------------------
 			case clientMsg := <- clientChan:
 
-			var data interface{}
+			var data map[string]any
 			err := json.Unmarshal(clientMsg, &data)
 			if err != nil {
 				log.Fatal(err)
 			}
 		
-			fmt.Printf("received client %v\n", data)	
+			target_id, ok := data["id"]
+			if ok == false {
+				fmt.Printf("Error parsing target id\n")
+			} else {
+			
+				widget, ok := display.widgetMap[target_id.(string)]
+				if ok == false {
+					fmt.Printf("Error parsing target id\n")
+				} else {
+					widget.ClientEvent(data)
+				}
+			}
+
 		}			
 	}
 }

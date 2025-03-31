@@ -57,7 +57,8 @@ type Widget interface {
 	// display elements as required
 	Update( conn *websocket.Conn )
 
-	
+	ClientEvent(data any)
+
 }
 
 

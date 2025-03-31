@@ -12,7 +12,9 @@ import (
 	"rtap/hmi/domterm"
 	"time"
 //	"gorm.io/gorm"
+	"github.com/yuin/gopher-lua"
 	"github.com/gorilla/websocket"
+
 )
 
 
@@ -35,14 +37,53 @@ type Label struct {
 	lastValue	string 
 }
 
-/* probably going to delete this
-func (lbl *Label) Init(display_id string){
 
-	lbl.DisplayID = display_id
 
-	//TODO: read from database
+// -----------------------------------------------------------------------------
+// Lua support stuff
+// -----------------------------------------------------------------------------
+const luaLabelTypeName = "label"
+
+// -----------------------------------------------------------------------------
+// Registers my person type to given L.
+// -----------------------------------------------------------------------------
+func RegisterLabelType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaLabelTypeName)
+	L.SetGlobal("label", mt)
+	// static attributes
+	 //   L.SetField(mt, "new", L.NewFunction(newDisplay))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), labelMethods))
 }
-*/
+
+// -----------------------------------------------------------------------------
+// labelMethods table
+// -----------------------------------------------------------------------------
+var labelMethods = map[string]lua.LGFunction{
+ //   "newLabel": luaNewLabel,
+ //   "show" : luaShow,
+}
+
+
+
+
+
+func (lbl *Label) Init(display_id string, parent string, top int, left int, width int, height int, zIndex int, content string ) error {
+
+		// TODO: Check params esp id and parent
+		lbl.DisplayID = display_id
+		lbl.Parent = parent
+		lbl.Top = top
+		lbl.Left = left
+		lbl.Width = width
+		lbl.Height = height
+		lbl.ZIndex = zIndex
+		lbl.Content = content
+		
+		return nil
+}
+	
+
 
 func (lbl *Label) Show(conn *websocket.Conn){
 
@@ -81,5 +122,11 @@ func (lbl *Label) Show(conn *websocket.Conn){
 // Update() does nothing since it is not tied to a real time value
 // -----------------------------------------------------------------------------
 func (dc *Label) Update(conn *websocket.Conn){
+}
+
+
+func (dc *Label) ClientEvent(data any) {
+
+	fmt.Printf("received label event %v\n", data)	
 }
 

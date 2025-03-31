@@ -20,6 +20,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/ziutek/telnet v0.0.0-20180329124119-c3b780dc415b // indirect
 	go.bug.st/serial v1.5.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
