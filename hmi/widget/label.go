@@ -68,7 +68,7 @@ var labelMethods = map[string]lua.LGFunction{
 
 
 
-func (lbl *Label) Init(display_id string, parent string, top int, left int, width int, height int, zIndex int, content string ) error {
+func (lbl * Label) Init(display_id string, parent string, top int, left int, width int, height int, zIndex int, content string ) error {
 
 		// TODO: Check params esp id and parent
 		lbl.DisplayID = display_id
@@ -85,7 +85,7 @@ func (lbl *Label) Init(display_id string, parent string, top int, left int, widt
 	
 
 
-func (lbl *Label) Show(conn *websocket.Conn){
+func (lbl * Label) Show(conn *websocket.Conn){
 
 	// Append the basic element
 	attributes := make(map[string]string)
@@ -121,11 +121,12 @@ func (lbl *Label) Show(conn *websocket.Conn){
 // -----------------------------------------------------------------------------
 // Update() does nothing since it is not tied to a real time value
 // -----------------------------------------------------------------------------
-func (dc *Label) Update(conn *websocket.Conn){
+func (lbl * Label) Update(conn *websocket.Conn) error{
+	return nil
 }
 
 
-func (dc *Label) ClientEvent(data any) {
+func (lbl * Label) ClientEvent(data any) {
 
 	fmt.Printf("received label event %v\n", data)	
 }

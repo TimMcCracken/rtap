@@ -9,6 +9,7 @@ import (
 	"log"
 //	"maps"
 	"net/http"
+	"time"
 //	 
 	"github.com/yuin/gopher-lua"
 	"github.com/gorilla/websocket"
@@ -24,6 +25,7 @@ var  display_test string
 
 type Display struct {
 	widgetMap map[string]widget.Widget
+	clockMap  map[string]widget.Widget
 }
 
 
@@ -58,8 +60,9 @@ func (d * Display) NewDigitalClock(parent string, top int, left int, width int, 
 		return dc, err
 	}
 
-	// add to the map
+	// add to the maps
 	d.widgetMap[dc.DisplayID] = dc
+	d.clockMap[dc.DisplayID] = dc
 
 	// return the new label and error code
 	return dc, nil
@@ -101,6 +104,7 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	// -------------------------------------------------------------------------
 	display := Display{
 		widgetMap : make(map[string]widget.Widget),
+		clockMap  : make(map[string]widget.Widget),
 	}
 
 
@@ -134,11 +138,18 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	// messages from the messageQ
 	// -------------------------------------------------------------------------
 	hmiChan := make(chan mq.Message)
+	
 	// -------------------------------------------------------------------------
 	// clientChan is a channel to receive messages from the client via the 
-	// sweb socket connetion..
+	// web socket connetion..
 	// -------------------------------------------------------------------------
 	clientChan 	:= make(chan []byte)
+
+	// -------------------------------------------------------------------------
+	// tickChan is used to keep digital clocks updated. without it, we would
+	// get concurrent access errors on the web socket connection.
+	// -------------------------------------------------------------------------
+	tickChan 	:= make(chan int)
 
 	// -------------------------------------------------------------------------
 	// The following is an anonymous go routine that recives messages from the
@@ -149,6 +160,7 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 			msgtype, payload, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("Error reading message:", err)
+				return
 			} else {
 				fmt.Printf("Message Type %v\n", msgtype)
 				
@@ -168,8 +180,25 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 
 		//panic(err)
 	}
-	fmt.Println("Finished Lua.")
+	fmt.Println("Finished Lua DoString().")
 
+
+	// Get the "main" function from Lua
+	mainFunc := L.GetGlobal("main")
+	if mainFunc.Type() == lua.LTFunction {
+		// Call main() in Lua
+		if err := L.CallByParam(lua.P{
+			Fn:      mainFunc,
+			NRet:    0, // Number of return values expected
+			Protect: true,
+		}); err != nil {
+			fmt.Println("Error calling Lua function:", err)
+		}
+	} else {
+		fmt.Println("Error: 'main' function not found in Lua state.")
+	}
+
+	fmt.Println("Finished Lua main.")
 
 
 
@@ -183,20 +212,6 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	domterm.SetStyle( conn, "html", attributes)
 	clear(attributes)
 
-/*
-	display.NewLabel("body", 50, 50, 200, 0, 0, "Local" )
-	display.NewLabel("body", 50, 300, 200, 0, 0, "America/New_York" )
-	display.NewLabel("body", 50, 550, 200, 0, 0, "UTC" )
-
-	dc1, _ := display.NewDigitalClock("body", 100, 50, 200, 0, 1, "" )
-	dc1.Timezone = "Local"
-	dc2, _ := display.NewDigitalClock("body", 100, 300, 200, 0, 1, "" ) 
-	dc1.Timezone = "New York"
-	dc3, _ := display.NewDigitalClock("body", 100, 550, 200, 0, 1, "" ) 
-	dc1.Timezone = "UTC"
-*/
-
-
 
 	// -------------------------------------------------------------------------
 	// Send all the display objects to the client browser
@@ -209,24 +224,17 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("finished show()")
 
 
-
-
-
-	// ------------------------------------
-	// the following goroutine is test code
-	// ------------------------------------
-	/*
-	go func() {
+	// -------------------------------------------------------------------------
+	// Create a goroutine to update the digital clocks if any
+	// -------------------------------------------------------------------------
+	go func(){
 
 		for {
-	//		dc1.Update(conn)
-	//		dc2.Update(conn)
-	//		dc3.Update(conn)
+			tickChan <- 0
 			time.Sleep(1 * time.Second)
 		}
-	}()
-	*/
 
+	}()
 
 	
 	// -------------------------------------------------------------------------
@@ -235,6 +243,22 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	// -------------------------------------------------------------------------
 	for {
 		select {
+
+			// ----------------------------------------------------------------
+			// These will be events sent from RTAP via the messageQ and HMITask
+			// ----------------------------------------------------------------
+			case _ = <- tickChan:
+        		fmt.Printf("received tick %v\n", time.Now().Unix())
+
+				for _, dc := range display.clockMap {
+					err = dc.Update(conn)
+					if err != nil {
+						fmt.Printf("display error: %v\n", err)
+						return
+					}
+				}
+
+
 			// ----------------------------------------------------------------
 			// These will be events sent from RTAP via the messageQ and HMITask
 			// ----------------------------------------------------------------
@@ -250,6 +274,7 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 			var data map[string]any
 			err := json.Unmarshal(clientMsg, &data)
 			if err != nil {
+				fmt.Printf("!!!!!!!!!!!!!!!!  doing the fatal error\n")
 				log.Fatal(err)
 			}
 		

@@ -45,8 +45,7 @@ func (domain * Domain) Start() {
 
 	domain.dacc.Start(&domain.bufferPool, &domain.messageQueue)
 
-
-	go domain.HMILoop() 
+	go domain.HMITask() 
 
 
 }
@@ -147,7 +146,7 @@ func (domain * Domain) Construct(filename string) error  {
 // message_q, it sends it to the worker go routines. When it receives a msg from
 // a worker, it .....
 // -----------------------------------------------------------------------------
-func (domain * Domain) HMILoop() {
+func (domain * Domain) HMITask() {
 
 
 	fmt.Printf("Starting HMI Loop [%s] [%s]\n", domain.Descriptor.RealmName, domain.Descriptor.DomainName)
@@ -166,7 +165,7 @@ func (domain * Domain) HMILoop() {
 
 		fmt.Printf("Got an HMI msg.\n")
 
-		msg = msg
+		domain.bufferPool.Put(msg.Data)
 	
 	}
 

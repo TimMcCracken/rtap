@@ -55,7 +55,7 @@ type Widget interface {
 	
 	// Update() causes the widget to read all the data sources and update 
 	// display elements as required
-	Update( conn *websocket.Conn )
+	Update( conn *websocket.Conn ) error
 
 	ClientEvent(data any)
 

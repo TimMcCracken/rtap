@@ -31,12 +31,12 @@ type DACC struct {
 
 func (dacc * DACC) Start (bp * bp.BufferPool, mq * mq.MessageQ){
 
-	go dacc.loop(bp, mq)
+	go dacc.daccTask(bp, mq)
 }
 
 
 
-func (dacc * DACC) loop (bp * bp.BufferPool, mq * mq.MessageQ){
+func (dacc * DACC) daccTask (bp * bp.BufferPool, mq * mq.MessageQ){
 
 	var ac anlg.AnalogChange
 
@@ -83,7 +83,7 @@ func (dacc * DACC) loop (bp * bp.BufferPool, mq * mq.MessageQ){
 
 
 
-		fmt.Printf("!")
+//		fmt.Printf("!")
 		x += 100
 		time.Sleep(1 * time.Second)
 	}

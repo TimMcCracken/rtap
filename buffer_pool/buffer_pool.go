@@ -50,7 +50,7 @@ func (bp * BufferPool )Start() {
 			},
 		}
 //	}
-	go scrubberLoop(bp)
+	go scrubberTask(bp)
 
 }
 
@@ -76,7 +76,7 @@ func (bp * BufferPool)Put(buffer *[]byte){
 //------------------------------------------------------------------------------
 // scrubber loop zeroes out a buffer before returning it to the pool.
 //------------------------------------------------------------------------------
-func scrubberLoop(bp * BufferPool){
+func scrubberTask(bp * BufferPool){
 
 	//	fmt.Println("scrubber loop started")
 		for {

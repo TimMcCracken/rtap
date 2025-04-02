@@ -47,7 +47,7 @@ type message struct {
 // -----------------------------------------------------------------------------
 // SetDocumentTitle() sends a command to set the title of the HTML document.
 // -----------------------------------------------------------------------------
-func SetDocumentTitle( conn *websocket.Conn, title string) {
+func SetDocumentTitle( conn *websocket.Conn, title string) error {
 	var msg message 
 
 	msg.Command = "SetDocumentTitle"
@@ -58,20 +58,22 @@ func SetDocumentTitle( conn *websocket.Conn, title string) {
 	jmsg, err := json.Marshal(&msg)
 	if err != nil {
 		log.Println("Error marshalling message:", err)
-		return
+		return err
 	}
 	err = conn.WriteMessage(1, []byte(jmsg))
 	if err != nil {
 		log.Println("Error writing JSON message:", err)
-		return
+		return err
 	}
+
+	return nil
 }
 
 // -----------------------------------------------------------------------------
 // SetDocumentTitle() sends a command to set the "value" attribute of a DOM
 // element.
 // -----------------------------------------------------------------------------
-func SetValue( conn *websocket.Conn, targetID string, value string) {
+func SetValue( conn *websocket.Conn, targetID string, value string) error {
 	var msg message 
 
 	msg.Command = "SetValue"
@@ -82,20 +84,21 @@ func SetValue( conn *websocket.Conn, targetID string, value string) {
 	jmsg, err := json.Marshal(&msg)
 	if err != nil {
 		log.Println("Error marshalling message:", err)
-		return
+		return err
 	}
 	err = conn.WriteMessage(1, []byte(jmsg))
 	if err != nil {
 		log.Println("Error writing JSON message:", err)
-		return
+		return err
 	}
+	return nil
 }
 
 
 // -----------------------------------------------------------------------------
 // SetAttributes() sends a command to set multiple attributes of a DOM element.
 // -----------------------------------------------------------------------------
-func SetAttributes( conn *websocket.Conn, targetID string, attributes map[string]string) {
+func SetAttributes( conn *websocket.Conn, targetID string, attributes map[string]string) error {
 	var msg message 
 
 	msg.Command = "SetAttributes"
@@ -105,20 +108,22 @@ func SetAttributes( conn *websocket.Conn, targetID string, attributes map[string
 	jmsg, err := json.Marshal(&msg)
 	if err != nil {
 		log.Println("Error marshalling message:", err)
-		return
+		return err
 	}
 	err = conn.WriteMessage(1, []byte(jmsg))
 	if err != nil {
 		log.Println("Error writing JSON message:", err)
-		return
+		return err
 	}
+
+	return nil
 }
 
 // -----------------------------------------------------------------------------
 // SetAttributes() sends a command to create a new dom element and append it to
 // an existing element.
 // -----------------------------------------------------------------------------
-func AppendElement( conn *websocket.Conn, targetID string, tag string, attributes map[string]string) {
+func AppendElement( conn *websocket.Conn, targetID string, tag string, attributes map[string]string) error {
 	var msg message 
 
 	msg.Command = "AppendElement"
@@ -130,20 +135,21 @@ func AppendElement( conn *websocket.Conn, targetID string, tag string, attribute
 	jmsg, err := json.Marshal(&msg)
 	if err != nil {
 		log.Println("Error marshalling message:", err)
-		return
+		return err
 	}
 	err = conn.WriteMessage(1, []byte(jmsg))
 	if err != nil {
 		log.Println("Error writing JSON message:", err)
-		return
+		return err
 	}
+	return nil
 }
 
 // -----------------------------------------------------------------------------
 // SetAttributes() sends a command to set multiple style properties on an a DOM 
 // element.
 // -----------------------------------------------------------------------------
-func SetStyle( conn *websocket.Conn, targetID string, properties map[string]string) {
+func SetStyle( conn *websocket.Conn, targetID string, properties map[string]string) error {
 	var msg message 
 
 	msg.Command = "SetStyle"
@@ -152,12 +158,14 @@ func SetStyle( conn *websocket.Conn, targetID string, properties map[string]stri
 	jmsg, err := json.Marshal(&msg)
 	if err != nil {
 		log.Println("Error marshalling message:", err)
-		return
+		return err
 	}
 	err = conn.WriteMessage(1, []byte(jmsg))
 	if err != nil {
 		log.Println("Error writing JSON message:", err)
-		return
+		return err
 	}
+
+	return nil
 }
 

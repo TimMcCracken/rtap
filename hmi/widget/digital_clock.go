@@ -42,8 +42,8 @@ type DigitalClock struct {
 	Timezone	string
 
 	// unexported properties below
-	TzLocation	*time.Location
-	Title		string
+	tzLocation	*time.Location
+	title		string
 	// lastValue is used to decide if we need to send again. Handy for dates
 	// and time without seconds, etc.
 	lastValue	string 
@@ -87,7 +87,7 @@ func init() {
 }
 
 
-func (dc *DigitalClock) Init(id string, parent string, top int, left int, width int, height int, zIndex int, content string) error {
+func (dc * DigitalClock) Init(id string, parent string, top int, left int, width int, height int, zIndex int, content string) error {
 
 	// TODO: Check params esp id and parent
 
@@ -104,21 +104,24 @@ func (dc *DigitalClock) Init(id string, parent string, top int, left int, width 
 		dc.Timezone = "Local"
 	}
 
-	tzLocation, err := time.LoadLocation(dc.Timezone)
-	dc.TzLocation = tzLocation
-	if err != nil {
-		dc.Timezone = "Local"
-		dc.Title = fmt.Sprintf("%s: %v", dc.Timezone, err)
-	}
 
+	tzLocation, err := time.LoadLocation(dc.Timezone)
+	if err != nil {
+		dc.Timezone = "ERROR"
+		// todo: add an error message to title
+		dc.title = fmt.Sprintf("Timezone error: %v",  err)
+		return nil
+	}
+	dc.title = fmt.Sprintf("Timezone: %s",dc.Timezone)
+	dc.tzLocation = tzLocation
 	return nil
 }
 
-func (dc *DigitalClock) Show(conn *websocket.Conn){
+func (dc * DigitalClock) Show(conn *websocket.Conn){
 
 	// Append the basic element
 	attributes := make(map[string]string)
-	attributes["title"] = fmt.Sprintf("Timezone: %s",dc.Timezone)
+	attributes["title"] = dc.title
 	attributes["tag"] 	= "output"
 	attributes["id"] 	= dc.DisplayID
 	attributes["style"] = "position: absolute;"
@@ -144,16 +147,28 @@ func (dc *DigitalClock) Show(conn *websocket.Conn){
 	}
 	domterm.SetStyle(conn, dc.DisplayID, attributes)
 
-	// remove this later
-	domterm.SetValue(conn, dc.DisplayID, defaultTimeFormat)
+	if dc.Timezone == "ERROR" {
+		domterm.SetValue(conn, dc.DisplayID, "ERROR!")
+	}
 }
 
-func (dc *DigitalClock) Update(conn *websocket.Conn){
+
+
+func (dc * DigitalClock) Update(conn *websocket.Conn) error {
 
 	var ft string
 
+
+	// If the timezone could not be processed, then exit
+	if dc.Timezone == "ERROR" {
+		return nil  // THIS SHOULD PROBABLY BE AN ERROR, but we dont want to break later processing
+	} 
+
+
 	// get the current time for the specified location
-	t := time.Now().In(dc.TzLocation)
+
+	t := time.Now().In(dc.tzLocation)
+//	t := time.Now()
 
 	// format the time as speified, or using the default.
 	if dc.Format == "" {
@@ -164,17 +179,22 @@ func (dc *DigitalClock) Update(conn *websocket.Conn){
 
 	// If there is no change from the 'lastValue' sent, then don't send again.
 	if ft == dc.lastValue {
-		return
+		return nil
 	}
 
 	// Update the value in the browser and copy to the 'lastValue'
-	domterm.SetValue(conn, dc.DisplayID, ft)
+	err := domterm.SetValue(conn, dc.DisplayID, ft)
+	if err != nil {
+		return err
+	}
+
 	dc.lastValue = ft
 
+	return nil
 }
 
 
-func (dc *DigitalClock) ClientEvent(data any) {
+func (dc * DigitalClock) ClientEvent(data any) {
 
 	fmt.Printf("received clock event %v\n", data)	
 }

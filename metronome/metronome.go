@@ -90,11 +90,11 @@ type Metronome struct {
 } 
 
 func (m * Metronome) Start(bp * bp.BufferPool, mq * mq.MessageQ) {
-	go metronomeLoop(bp, mq)
+	go metronomeTask(bp, mq)
 }
 
 
-func metronomeLoop(bp * bp.BufferPool, mq * mq.MessageQ) {
+func metronomeTask(bp * bp.BufferPool, mq * mq.MessageQ) {
 
 	// Declare the structure for the data to be marshalled.
 	var pb_tick pb.Tick

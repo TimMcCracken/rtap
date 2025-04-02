@@ -77,7 +77,7 @@ func (mq * MessageQ )Start(bp * bp.BufferPool) {
 		mq. receivers = make(map[string]chan Message, 256)
 	}
 
-	go messageQueueLoop(mq)
+	go messageQueueTask(mq)
 
 	fmt.Println("message queue is started")
 }
@@ -156,13 +156,21 @@ func (mq * MessageQ )Send( destinations []string, data *[]byte) error {
 }
 
 
-func Receive( ) (data []byte, err error) { 
+func (mq * MessageQ )Receive( ch chan Message  ) (data * []byte, err error) { 
+	
+	// Wait on a message
+	msg := <- ch
 
+	// copy the data from the message
+
+	// return the buffer to the pool
+	mq.bp.Put(msg.Data)
+	// return
 	return nil, nil
 }
 
 //------------------------------------------------------------------------------
-// The messageQueuLoop() runs continuosly from startup to shutdown. It receives
+// messageQueuLoop() runs continuosly from startup to shutdown. It receives
 // messages on a well know channel, and forwards the messages as requested.
 // There are 3 types of destinations: unicast, multicast and broadcast. 
 //
@@ -173,8 +181,7 @@ func Receive( ) (data []byte, err error) {
 // For multicast and braodcast, we send a copy of each message.
 //
 //------------------------------------------------------------------------------
-
-func messageQueueLoop(mq * MessageQ){
+func messageQueueTask(mq * MessageQ){
 
 	fmt.Println("message queue loop started")
 
@@ -188,7 +195,9 @@ func messageQueueLoop(mq * MessageQ){
 		switch len(msg.Destinations) {
 
 		case 0:
+			// todo: log a message
 			fmt.Printf("Message queue receved message with 0 destinations.")
+			mq.bp.Put(msg.Data)
 		case 1:
 
 			if msg.Destinations[0] == "*" { // True if "broadcast"

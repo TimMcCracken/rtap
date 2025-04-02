@@ -2,7 +2,8 @@
 hmi_dispatcher
 
 hmi_dispatcher implements a message queuing system similar to message_q, but
-which provided an event driven asynchronous communication system. 
+forwards messages to displayWorkers
+
 HMI_Dispatcher receives message from message_q, examines the data and forwards
 the messages to worker goroutines that were spawned by hmi_server. Initially
 it will forward all messages to all worker goroutines, but eventually this will
@@ -48,9 +49,9 @@ type Message struct{
 // HMIDispatcher for each domain. 
 // -----------------------------------------------------------------------------
 type HMIDispatcher struct {
-	bp				bp.BufferPool	
-	hd_chan	chan 	mq.Message
-	receivers		map[uuid.UUID]chan mq.Message
+	bp				* bp.BufferPool	
+	hmiTaskChan		chan [] mq.Message
+	receivers		map[uuid.UUID]chan []byte
 }
 
 
@@ -59,18 +60,20 @@ type HMIDispatcher struct {
 // Start() launches the goroutines that operate and support the message_queue
 // system.
 // -----------------------------------------------------------------------------
-func (hd * HMIDispatcher )Start() {
+func (hd * HMIDispatcher )Start(pool * bp.BufferPool) {
+
+	hd.bp = pool
 
 	if hd.hd_chan == nil {
-		hd.hd_chan 	= make(chan mq.Message, 256 )
+		hd.hd_chan 	= mq.Register()
 	}
 	
 	if hd.receivers == nil {
-		hd. receivers = make(map[uuid.UUID]chan mq.Message, 256)
+		hd. receivers = make(map[uuid.UUID]chan []byte, 256)
 	}
 
 
-	go hmiDispatcherLoop(hd)
+	go hmiDispatcherTask(hd)
 
 	fmt.Println("HMIDispatcher is started")
 }
@@ -78,13 +81,13 @@ func (hd * HMIDispatcher )Start() {
 
 
 // -----------------------------------------------------------------------------
-// Register allows a display goroutine to register to recieve messages from 
+// Register allows a displayWorker to register to recieve messages from 
 // other HMIDispatcher. Each display goroutine register when in starts and
 // unregister when it exits.
 // 
 //
 // -----------------------------------------------------------------------------
-func (hd * HMIDispatcher )Register() ( chan mq.Message, uuid.UUID, error) { 
+func (hd * HMIDispatcher )Register() ( chan []byte, uuid.UUID, error) { 
 	
 	// -------------------------------------------------------------------------
 	// Create a UUID to use for the key in the channel map
@@ -96,7 +99,7 @@ func (hd * HMIDispatcher )Register() ( chan mq.Message, uuid.UUID, error) {
 	// -------------------------------------------------------------------------
 	// Create a new channel and add it to the map
 	// -------------------------------------------------------------------------
-	new_channel := make(chan mq.Message)
+	new_channel := make(chan []byte)
 	hd.receivers[uid] = new_channel
 
 
@@ -141,20 +144,20 @@ func (hd * HMIDispatcher )Send( destinations []string, data *[]byte) error {
 }*/
 
 
-func Receive( ) (data []byte, err error) { 
+func (hd * HMIDispatcher )Receive( ) (data []byte, err error) { 
 
 	return nil, nil
 }
 
 //------------------------------------------------------------------------------
-// The HMIDispatcherLoop() runs continuosly from startup to shutdown. It receives
+// The HMIDispatcherTask() runs continuosly from startup to shutdown. It receives
 // messages from the HMIDispatcher, and forwards the messages as needed.
 //
 //------------------------------------------------------------------------------
 
-func hmiDispatcherLoop(hd * HMIDispatcher){
+func hmiDispatcherTask(hd * HMIDispatcher){
 
-	fmt.Println("hmi dispatcher loop started")
+	fmt.Println("hmi dispatcher task started")
 
 	//--------------------------------------------------------------------------
 	// Loop forever, receiving from the channel and sending out to other
@@ -175,6 +178,8 @@ func hmiDispatcherLoop(hd * HMIDispatcher){
 		}	
 		// return the orginal message to the pool
 		hd.bp.Put(msg.Data)
+
+		fmt.Printf("hmiDispatcherTask()\n")
 	}
 }
 

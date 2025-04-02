@@ -53,6 +53,7 @@ import (
 )
 
 
+todo: combine HMI and HMI dispatcher to one struct
 
 //var upgrader = websocket.Upgrader{} // use default options
 
@@ -72,7 +73,7 @@ type HMI struct {
 
 
 func (hmi * HMI) Start( serverAddress string){
-	go hmi.HMIServer(serverAddress)
+	go hmi.HMIServerTask(serverAddress)
 }
 
 
@@ -98,9 +99,9 @@ func domtermHandler(w http.ResponseWriter, r *http.Request) {
 
 
 // -----------------------------------------------------------------------------
-// HMIServer is the web sockets listener
+// HMIServerTask is the web sockets listener
 // -----------------------------------------------------------------------------
-func (hmi * HMI) HMIServer(serverAddress string) {
+func (hmi * HMI) HMIServerTask(serverAddress string) {
 	
 	// Build the private messageQueu that we will use
 	// to send messages to the websocket goroutines
