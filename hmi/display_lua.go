@@ -28,7 +28,7 @@ import (
 const luaDisplayTypeName = "display"
 
     // Registers my person type to given L.
-    func registerDisplayType(L *lua.LState) {
+    func RegisterDisplayType(L *lua.LState) {
         mt := L.NewTypeMetatable(luaDisplayTypeName)
         L.SetGlobal("display", mt)
         // static attributes

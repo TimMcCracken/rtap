@@ -148,7 +148,7 @@ func metronomeTask(bp * bp.BufferPool, mq * mq.MessageQ) {
 		// -------------------------------------------------------------------------
 		// Get a buffer from the pool
 		// -------------------------------------------------------------------------
-		buf_ptr := bp.Get(1024).(*[]byte)  // fixed size for now. May change later
+		buf_ptr := bp.Get(1024) //.(*[]byte)  // fixed size for now. May change later
 		
 		// -------------------------------------------------------------------------
 		// Marshall the data and copy it into the buffer

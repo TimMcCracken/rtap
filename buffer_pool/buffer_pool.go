@@ -57,7 +57,7 @@ func (bp * BufferPool )Start() {
 // -----------------------------------------------------------------------------
 // GeBuffer() returns a buffer from the buffer pool.
 // -----------------------------------------------------------------------------
- 	func (bp * BufferPool ) Get(size int) ( interface{}) {
+ 	func (bp * BufferPool ) Get(size int) ( *[]byte) {
 	bp.totalGets++
 
 	fmt.Printf("Total Buffers, Gets, Puts, scrubs: %d  %d  %d  %d\n", bp.totalBuffers, bp.totalGets, bp.totalPuts, bp.totalScrubs)

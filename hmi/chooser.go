@@ -20,7 +20,7 @@ import (
 // -----------------------------------------------------------------------------
 // testPageHandler()
 // -----------------------------------------------------------------------------
-func wsChooserHandler(w http.ResponseWriter, r *http.Request) {
+func ChooserHandler(w http.ResponseWriter, r *http.Request) {
 
 	
 	// authenticate

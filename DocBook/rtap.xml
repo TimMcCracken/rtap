@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<book   xmlns="http://docbook.org/ns/docbook" 
+        xmlns:xi="http://www.w3.org/2001/XInclude" 
+        version="5.0" xml:lang="en">
+
+<title>Sample Book</title> 
+
+
+<xi:include href="gloassary.xml"/> 
+<xi:include href="chap2.xml"/> 
+<xi:include href="chap3.xml"/> 
+<xi:include href="appa.xml"/> 
+<xi:include href="appb.xml"/> 
+</book>

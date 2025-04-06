@@ -2,31 +2,46 @@ package hmi
 
 import (
 	_ "embed"
-	"encoding/json"
-//	"flag"
+//	"encoding/json"
 	"fmt"
-//	"html/template"
-	"log"
-//	"maps"
+//	"log"
 	"net/http"
-	"time"
-//	 
-	"github.com/yuin/gopher-lua"
-	"github.com/gorilla/websocket"
-	"rtap/hmi/domterm"
-	mq "rtap/message_q"
+//	"time"
+//	"github.com/yuin/gopher-lua"
+//	"github.com/gorilla/mux"
+	ws "github.com/gorilla/websocket"
+//	"rtap/hmi/domterm"
+//	mq "rtap/message_q"
 	"rtap/hmi/widget"
+//	"rtap/domain"
 )
 
 //go:embed display_test.lua
-var  display_test string
-
+var  DisplayTest string
 
 
 type Display struct {
-	widgetMap map[string]widget.Widget
-	clockMap  map[string]widget.Widget
+	WidgetMap map[string]widget.Widget
+	ClockMap  map[string]widget.Widget
 }
+
+
+var upgrader = ws.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all connections
+	},
+}
+
+func NewDisplay() * Display {
+
+	display := new(Display)
+
+	display.WidgetMap = make(map[string]widget.Widget)
+	display.ClockMap  = make(map[string]widget.Widget)
+
+	return display
+}
+
 
 
 func (d * Display) NewLabel(parent string, top int, left int, width int, height int, zIndex int, content string ) (*widget.Label, error) {
@@ -34,7 +49,7 @@ func (d * Display) NewLabel(parent string, top int, left int, width int, height 
 	lbl := new( widget.Label)
 
 	// make up an ID
-	displayID := fmt.Sprintf("lbl_%d", len(d.widgetMap))
+	displayID := fmt.Sprintf("lbl_%d", len(d.WidgetMap))
 
 	err := lbl.Init(displayID, parent, top, left, width, height, zIndex, content)
 	if err != nil {
@@ -42,7 +57,7 @@ func (d * Display) NewLabel(parent string, top int, left int, width int, height 
 	}
 
 	// add to the map
-	d.widgetMap[lbl.DisplayID] = lbl
+	d.WidgetMap[lbl.DisplayID] = lbl
 
 	// return the new label and error code
 	return lbl, nil
@@ -53,7 +68,7 @@ func (d * Display) NewDigitalClock(parent string, top int, left int, width int, 
 	dc := new( widget.DigitalClock)
 
 	// make up an ID
-	displayID := fmt.Sprintf("dc_%d", len(d.widgetMap))
+	displayID := fmt.Sprintf("dc_%d", len(d.WidgetMap))
 
 	err := dc.Init(displayID, parent, top, left, width, height, zIndex, content)
 	if err != nil {
@@ -61,8 +76,8 @@ func (d * Display) NewDigitalClock(parent string, top int, left int, width int, 
 	}
 
 	// add to the maps
-	d.widgetMap[dc.DisplayID] = dc
-	d.clockMap[dc.DisplayID] = dc
+	d.WidgetMap[dc.DisplayID] = dc
+	d.ClockMap[dc.DisplayID] = dc
 
 	// return the new label and error code
 	return dc, nil
@@ -74,9 +89,9 @@ func (d * Display) NewDigitalClock(parent string, top int, left int, width int, 
 // -----------------------------------------------------------------------------
 // Show() should be called after creating all the display objects
 // -----------------------------------------------------------------------------
-func (d * Display) Show(conn *websocket.Conn) {
+func (d * Display) Show(conn *ws.Conn) {
 
-	for _, widget := range d.widgetMap {
+	for _, widget := range d.WidgetMap {
 		widget.Show(conn)
 	}
 
@@ -84,10 +99,36 @@ func (d * Display) Show(conn *websocket.Conn) {
 
 
 // -----------------------------------------------------------------------------
-// wsDisplayHandler() is a goroutine that is spawned by the HMI listener to 
+// DisplayHandler() is a goroutine that is spawned by the HMI listener to 
 // handle create, execute and close displays.
 // -----------------------------------------------------------------------------
-func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
+/*
+func DisplayHandler(domain domain.Domain, w http.ResponseWriter, r *http.Request) {
+
+	// Parse the URL variables
+//	vars := mux.Vars(r)
+//	realm := vars["realm"]
+//	domain := vars["domain"]
+//	name := vars["name"] //display name
+
+	// Validate the URL variables
+
+
+//	fmt.Printf("Realm : %s\n", realm)
+//	fmt.Printf("Domain: %s\n", domain)
+//	fmt.Printf("D Name: %s\n", name)
+
+
+
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error upgrading connection:", err)
+		return
+	}
+	defer conn.Close()
+
+
 
 	fmt.Println("Starting display handler.")
 
@@ -126,12 +167,7 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	L.SetGlobal("display", ud)
 
 	
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Error upgrading connection:", err)
-		return
-	}
-	defer conn.Close()
+	
 	
 	// -------------------------------------------------------------------------
 	// hmiChan is a channel to receive messages from the hmiTask that processes 
@@ -294,4 +330,4 @@ func wsDisplayHandler(w http.ResponseWriter, r *http.Request) {
 		}			
 	}
 }
-
+*/

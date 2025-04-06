@@ -9,27 +9,29 @@ import(
 // 	"github.com/glebarez/sqlite"
 	"log"
 	"os"
-	"rtap/hmi"
+//	"rtap/hmi"
 	"rtap/message_q"
 	"rtap/realm"
 )
 
 
 
-type rtap_system struct {
+type rtapSystem struct {
 	realms			[]*realm.Realm
 	realms_map 		map[string]int
-	hmi				hmi.HMI
+//	hmi				hmi.HMI
 }
 
 // ----------------------------------------------------------------------------
 // "RTAP" is a singleton and is the root object of the RTAP system.
 // ----------------------------------------------------------------------------
-var RTAP rtap_system
+var RTAP rtapSystem
+
+
 
 
 // Start starts up the entire system. 
-func (rtap * rtap_system) Start(serverAddress string) {
+func (rtap * rtapSystem) Start(serverAddress string) {
 
 	// Start all the realms, which will start all the domains.
 
@@ -39,15 +41,15 @@ func (rtap * rtap_system) Start(serverAddress string) {
 	}
 
 
-	// Start the websocket server
-	rtap.hmi.Start(":8080")
+	// Start the web server
+	go rtap.HMIServerTask(serverAddress)
 
 }
 
 
 
 
-func Realm(realm_name string) (* realm.Realm, error) {
+func (rtap * rtapSystem)Realm(realm_name string) (* realm.Realm, error) {
 
 	realm_index, ok := RTAP.realms_map[realm_name]
 	if ! ok {
@@ -58,7 +60,7 @@ func Realm(realm_name string) (* realm.Realm, error) {
 }
 
 
-func MessageQueue(realm_name string, domain_name string) (* message_q.MessageQ, error) {
+func (rtap * rtapSystem) MessageQueue(realm_name string, domain_name string) (* message_q.MessageQ, error) {
 
 	realm_index, ok := RTAP.realms_map[realm_name]
 	if ! ok {

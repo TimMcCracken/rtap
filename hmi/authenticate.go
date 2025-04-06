@@ -20,7 +20,7 @@ import (
 // -----------------------------------------------------------------------------
 // testPageHandler()
 // -----------------------------------------------------------------------------
-func wsAuthenticateHandler(w http.ResponseWriter, r *http.Request) {
+func AuthenticateHandler(w http.ResponseWriter, r *http.Request) {
 
 
 

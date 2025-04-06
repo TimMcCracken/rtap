@@ -5,6 +5,7 @@ package common
 import(
 	"fmt"
 	"regexp"
+
 	"rtap/options"
 )
 
@@ -25,3 +26,11 @@ func ValidateObjectName(name string) error {
 	return nil
 }
 
+
+func ValidateRealmDomain(realm_name string, domain_name string) bool {
+
+//	realm := RTAP.Realm(realm_name)
+
+
+	return true
+}

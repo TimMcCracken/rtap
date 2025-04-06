@@ -22,7 +22,7 @@ func TestDownload(t *testing.T) {
 	t.Log("rtap_test starting.")
 
 
-	realm, err := Realm("devscada")
+	realm, err := RTAP.Realm("devscada")
 	if err != nil {
 		fmt.Printf("Error getting realm: %v", err)
 	} 

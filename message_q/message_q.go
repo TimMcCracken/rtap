@@ -205,7 +205,7 @@ func messageQueueTask(mq * MessageQ){
 					// We need to make a copy of the message.
 					msg2 := msg
 					// get another buffer
-					buf_ptr := mq.bp.Get(1024).(*[]byte)   // VAR IGNORED FOR NOW
+					buf_ptr := mq.bp.Get(1024) //.(*[]byte)   // VAR IGNORED FOR NOW
 					// copy the buffers and assign the buffer ptr
 					copy(*buf_ptr, *msg.Data)
 					*msg2.Data = *buf_ptr

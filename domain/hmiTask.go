@@ -17,15 +17,16 @@ Rev Date     By  Reason
 ------------------------------------------------------------------------------*/
 
 
-package hmi
+package domain
 
 import (
 	"fmt"
 //	"path/filepath"
 //	"runtime"
-//	"rtap/common"
-	bp "rtap/buffer_pool"
-	mq "rtap/message_q"
+//	"rtap/domain"
+
+//	bp "rtap/buffer_pool"
+//	mq "rtap/message_q"
 	"github.com/google/uuid"
 //	"rtap/rtdsms"
 )
@@ -48,11 +49,12 @@ type Message struct{
 // HMIDispatcher provides the API for the message queueing system. There is one 
 // HMIDispatcher for each domain. 
 // -----------------------------------------------------------------------------
+/*
 type HMIDispatcher struct {
 	bp				* bp.BufferPool	
 	hmiTaskChan		chan [] mq.Message
 	receivers		map[uuid.UUID]chan []byte
-}
+}*/
 
 
 
@@ -60,23 +62,44 @@ type HMIDispatcher struct {
 // Start() launches the goroutines that operate and support the message_queue
 // system.
 // -----------------------------------------------------------------------------
-func (hd * HMIDispatcher )Start(pool * bp.BufferPool) {
 
-	hd.bp = pool
+/*
+hmi.bp = bp
 
-	if hd.hd_chan == nil {
-		hd.hd_chan 	= mq.Register()
+	if hmi.hmiTaskChan == nil {
+		hmiTaskChan, err := mq.Register("hmi")
+		if err != nil {
+			fmt.Printf("Error creating hmiTaskChannel!\n") // todo log error
+		}
+		hmi.hmiTaskChan = hmiTaskChan
 	}
 	
-	if hd.receivers == nil {
-		hd. receivers = make(map[uuid.UUID]chan []byte, 256)
+	if hmi.receivers == nil {
+		hmi. receivers = make(map[uuid.UUID]chan []byte, 256)
+	}
+
+	go hmi.hmiDispatcherTask()
+	fmt.Println("HMIDispatcher is started")
+*/
+
+/*
+func (domain * Domain )Start() {
+
+	// This task receives messages from the MessageQ for this domain
+	if domain.hmi_chan == nil {
+		domain.hmi_chan 	= mq.Register()
+	}
+	
+	// This task forwards messages to the hmi Workers
+	if domain.hmiWorkers == nil {
+		domain.hmiWorkers = make(map[uuid.UUID]chan []byte, 256)
 	}
 
 
-	go hmiDispatcherTask(hd)
+	go hmiTask(hd)
 
-	fmt.Println("HMIDispatcher is started")
-}
+	fmt.Println("hmiTask() is started on %s %s\n", domain.Descriptor.realm_name, domain.Descriptor.domain_name)
+}*/
 
 
 
@@ -87,7 +110,7 @@ func (hd * HMIDispatcher )Start(pool * bp.BufferPool) {
 // 
 //
 // -----------------------------------------------------------------------------
-func (hd * HMIDispatcher )Register() ( chan []byte, uuid.UUID, error) { 
+func (domain * Domain )RegisterHmiWorker() ( chan []byte, uuid.UUID, error) { 
 	
 	// -------------------------------------------------------------------------
 	// Create a UUID to use for the key in the channel map
@@ -100,7 +123,7 @@ func (hd * HMIDispatcher )Register() ( chan []byte, uuid.UUID, error) {
 	// Create a new channel and add it to the map
 	// -------------------------------------------------------------------------
 	new_channel := make(chan []byte)
-	hd.receivers[uid] = new_channel
+	domain.hmiWorkers[uid] = new_channel
 
 
 	return new_channel, uid, nil
@@ -144,42 +167,67 @@ func (hd * HMIDispatcher )Send( destinations []string, data *[]byte) error {
 }*/
 
 
-func (hd * HMIDispatcher )Receive( ) (data []byte, err error) { 
+func (domain * Domain )ReceiveHmiMessage( ) (data []byte, err error) { 
 
 	return nil, nil
 }
 
 //------------------------------------------------------------------------------
-// The HMIDispatcherTask() runs continuosly from startup to shutdown. It receives
-// messages from the HMIDispatcher, and forwards the messages as needed.
+// The hmiTask() runs continuosly from startup to shutdown. It receives
+// messages from the MessageQ, and forwards the messages to the hmiWorkers
 //
 //------------------------------------------------------------------------------
 
-func hmiDispatcherTask(hd * HMIDispatcher){
+func (domain * Domain) hmiTask(){
 
-	fmt.Println("hmi dispatcher task started")
+	fmt.Println("hmi task starting")
+
+
+	// This task receives messages from the MessageQ for this domain
+	if domain.hmiChannel == nil {
+		hmiChannel, err 	:= domain.messageQueue.Register("hmi")
+		if err != nil {
+			fmt.Printf("Failed to register HMI with message_q") //tofo fix error log
+		}
+		domain.hmiChannel = hmiChannel
+	}
+
+	// This task forwards messages to the hmi Workers
+	if domain.hmiWorkers == nil {
+		domain.hmiWorkers = make(map[uuid.UUID]chan []byte, 256)
+	}
+
+	fmt.Println("hmiTask() is started on %s %s\n", domain.Descriptor.RealmName, domain.Descriptor.DomainName)
+
 
 	//--------------------------------------------------------------------------
 	// Loop forever, receiving from the channel and sending out to other
 	// channels as needed 
 	//--------------------------------------------------------------------------
 	for {
-        msg := <- hd.hd_chan
+		// Get a new message from the messageQ
+        msg := <- domain.hmiChannel
 
-		for _, ch := range hd.receivers {
+		// Send the message to all the hmiWorkers. later this will be a publish
+		// subscribe system to send messages only to the workers that need the
+		// message.
+		for _, ch := range domain.hmiWorkers {
 			// We need to make a copy of the message.
-			msg2 := msg
+			//msg2 := msg.Data
+
 			// get another buffer
-			buf_ptr := hd.bp.Get(1024).(*[]byte)  // fixed size for now, may change later
+			buf_ptr := domain.bufferPool.Get(1024)// .(*[]byte)  // fixed size for now, may change later
+			
 			// copy the buffers and assign the buffer ptr
 			copy(*buf_ptr, *msg.Data)
-			*msg2.Data = *buf_ptr
-			ch <- msg2
+			
+			//msg2 = buf_ptr
+			ch <- *buf_ptr
 		}	
-		// return the orginal message to the pool
-		hd.bp.Put(msg.Data)
+		// return the orginal buffer to the pool
+		domain.bufferPool.Put(msg.Data)
 
-		fmt.Printf("hmiDispatcherTask()\n")
+		fmt.Printf("hmiTask()\n")
 	}
 }
 

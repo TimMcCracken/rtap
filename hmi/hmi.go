@@ -24,6 +24,10 @@ track all subscribed data points. JSON messages are exchanged over the
 web socket connection between the client and the hti_loop.
 
 
+	hmiServer (1 webserver that serves all realms/domains)
+	hmiTask   (1 task per realm/domain that receives requests from HMI server 
+				and publishes to )
+	hmiWorker (spawned by hmiServer and subscribes on hmiTask )
 
 
 
@@ -37,13 +41,15 @@ import (
 	_ "embed"
 //	"encoding/json"
 //	"flag"
-	"fmt"
-	"html/template"
-	"log"
+//	"fmt"
+//	"html/template"
+//	"log"
 //	"maps"
-	"net/http"
+//	"net/http"
 //	"time"
-	"github.com/gorilla/websocket"
+//	"github.com/google/uuid"
+//	"net/http"
+//	"github.com/gorilla/websocket"
 //	"rtap/hmi/domterm"
 //	"rtap/domain"	
 //	bp "rtap/buffer_pool"
@@ -53,99 +59,30 @@ import (
 )
 
 
-todo: combine HMI and HMI dispatcher to one struct
+
+
 
 //var upgrader = websocket.Upgrader{} // use default options
 
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all connections
-	},
-}
 
 
+/*
 type HMI struct {
 
-}
-
-
-
-
-func (hmi * HMI) Start( serverAddress string){
-	go hmi.HMIServerTask(serverAddress)
-}
-
-
-
-func homeStub(w http.ResponseWriter, r *http.Request) {
-
-//	w.Write([]byte("WTF"))
-	authenticateTemplate.Execute(w, "ws://" +r.Host+ "/ws/authenticate")
-}
-
-func chooserStub(w http.ResponseWriter, r *http.Request) {
-	chooserTemplate.Execute(w, "ws://" +r.Host+ "/ws/chooser")
-}
-
-func displayStub(w http.ResponseWriter, r *http.Request) {
-	displayTemplate.Execute(w, "ws://" +r.Host+ "/ws/display")
-}
-
-
-func domtermHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(jsDomterm))
-}
-
-
-// -----------------------------------------------------------------------------
-// HMIServerTask is the web sockets listener
-// -----------------------------------------------------------------------------
-func (hmi * HMI) HMIServerTask(serverAddress string) {
 	
-	// Build the private messageQueu that we will use
-	// to send messages to the websocket goroutines
-
-	http.HandleFunc("/", homeStub)
-	http.HandleFunc("/ws/authenticate", wsAuthenticateHandler)
-
-
-	http.HandleFunc("/chooser", chooserStub)
-	http.HandleFunc("/ws/chooser", wsChooserHandler)
-
-
-	http.HandleFunc("/display", displayStub)
-	http.HandleFunc("/ws/display", wsDisplayHandler)
-
-
-	http.HandleFunc("/js/domterm.js", domtermHandler)
-
-
-	// Start the HMI Server loop.
-	fmt.Println("WebSocket server started on", serverAddress)
-	log.Fatal(http.ListenAndServe(serverAddress, nil))
-
+	bp				* bp.BufferPool	
+	hmiTaskChan		chan mq.Message
+	receivers		map[uuid.UUID]chan []byte
+	
+	
 }
+*/
 
 
+/*
+func (hmi * HMI) Start( serverAddress string){
+	
+} */
 
 
-
-// The following commented lines are go directives, not a comment!
-
-//go:embed authenticate.html
-var authenticate 	string
-
-//go:embed chooser.html
-var chooser			string
-
-//go:embed display.html
-var display_html			string
-
-//go:embed domterm.js
-var  jsDomterm			string
-
-
-var authenticateTemplate 	= template.Must(template.New("").Parse(authenticate))
-var chooserTemplate 		= template.Must(template.New("chooser").Parse(chooser))
-var displayTemplate 		= template.Must(template.New("display").Parse(display_html))
