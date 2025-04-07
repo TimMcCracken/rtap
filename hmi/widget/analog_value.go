@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"rtap/hmi/domterm"
 //	"time"
-	"gorm.io/gorm"
+//	"gorm.io/gorm"
 	"github.com/gorilla/websocket"
 )
 
@@ -37,7 +37,7 @@ type AnalogValue struct {
 	Width		int
 	ZIndex		int
 	Format		string
-
+	Content		string
 	lastValue	string 
 
 	// configuration values
@@ -57,38 +57,31 @@ type AnalogValue struct {
 
 }
 
-func (anlg *AnalogValue) Init(db *gorm.DB, descriptor string, rtdata string, display_id string){
-
-	anlg.DisplayID = display_id
-
-	//TODO: read from display database file 
-
-
-	// Permanent code
-//	if dc.Timezone == "" {
-//		dc.Timezone = "Local"
-//	}
-
-//	tzLocation, err := time.LoadLocation(dc.Timezone)
-//	dc.tzLocation = tzLocation
-//	if err != nil {
-//		dc.Timezone = "Local"
-//		dc.title = fmt.Sprintf("%s: %v", dc.Timezone, err)
-//	}
-}
 
 
 // ----------------------------------------------------------------------------
 // 
 // ----------------------------------------------------------------------------
 
-func init() {
-	
+
+func (av *AnalogValue) Init(display_id string, parent string, top int, left int, width int, height int, 
+	zIndex int, content string,
+	options map[string]string, styles map[string]string  ) error {
+
+	// TODO: Check params esp id and parent
+	av.DisplayID = display_id
+	av.Parent = parent
+	av.Top = top
+	av.Left = left
+	av.Width = width
+	av.Height = height
+	av.ZIndex = zIndex
+	av.Content = content
+
+	return nil
 }
 
-
-
-func (av *AnalogValue) Put(conn *websocket.Conn){
+func (av *AnalogValue) Show(conn *websocket.Conn) error {
 
 	// Append the basic element
 	attributes := make(map[string]string)
@@ -115,10 +108,12 @@ func (av *AnalogValue) Put(conn *websocket.Conn){
 		attributes["width"]		= fmt.Sprintf("%dpx", av.Width)
 	}
 	domterm.SetStyle(conn, av.DisplayID, attributes)
+	domterm.SetValue(conn, av.DisplayID, "0.0")
 
+	return nil
 }
 
-func (dc *AnalogValue) Update(conn *websocket.Conn){
+func (av *AnalogValue) Update(conn *websocket.Conn) error {
 
 //	var ft string
 
@@ -141,5 +136,13 @@ func (dc *AnalogValue) Update(conn *websocket.Conn){
 //	domterm.SetValue(conn, dc.DisplayID, ft)
 //	dc.lastValue = ft
 
+	return nil
 }
  
+
+func (av *AnalogValue) ClientEvent(conn *websocket.Conn, data any) error {
+
+	fmt.Printf("received clock event %v\n", data)	
+
+	return nil
+}

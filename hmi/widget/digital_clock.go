@@ -87,7 +87,9 @@ func init() {
 }
 
 
-func (dc * DigitalClock) Init(id string, parent string, top int, left int, width int, height int, zIndex int, content string) error {
+func (dc * DigitalClock) Init(id string, parent string, top int, left int, width int, height int, 
+							zIndex int, content string, 
+							options map[string]string, styles map[string]string ) error {
 
 	// TODO: Check params esp id and parent
 
@@ -117,7 +119,7 @@ func (dc * DigitalClock) Init(id string, parent string, top int, left int, width
 	return nil
 }
 
-func (dc * DigitalClock) Show(conn *websocket.Conn){
+func (dc * DigitalClock) Show(conn *websocket.Conn) error {
 
 	// Append the basic element
 	attributes := make(map[string]string)
@@ -150,6 +152,8 @@ func (dc * DigitalClock) Show(conn *websocket.Conn){
 	if dc.Timezone == "ERROR" {
 		domterm.SetValue(conn, dc.DisplayID, "ERROR!")
 	}
+
+	return nil
 }
 
 
@@ -194,7 +198,9 @@ func (dc * DigitalClock) Update(conn *websocket.Conn) error {
 }
 
 
-func (dc * DigitalClock) ClientEvent(data any) {
+func (dc * DigitalClock) ClientEvent(conn *websocket.Conn, data any) error {
 
 	fmt.Printf("received clock event %v\n", data)	
+	return nil
+
 }

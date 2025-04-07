@@ -68,7 +68,9 @@ var labelMethods = map[string]lua.LGFunction{
 
 
 
-func (lbl * Label) Init(display_id string, parent string, top int, left int, width int, height int, zIndex int, content string ) error {
+func (lbl * Label) Init(display_id string, parent string, top int, left int, width int, height int, 
+						zIndex int, content string,
+						options map[string]string, styles map[string]string  ) error {
 
 		// TODO: Check params esp id and parent
 		lbl.DisplayID = display_id
@@ -85,7 +87,7 @@ func (lbl * Label) Init(display_id string, parent string, top int, left int, wid
 	
 
 
-func (lbl * Label) Show(conn *websocket.Conn){
+func (lbl * Label) Show(conn *websocket.Conn) error {
 
 	// Append the basic element
 	attributes := make(map[string]string)
@@ -114,7 +116,7 @@ func (lbl * Label) Show(conn *websocket.Conn){
 
 	domterm.SetValue(conn, lbl.DisplayID, lbl.Content)
 
-
+	return nil
 }
 
 
@@ -126,8 +128,10 @@ func (lbl * Label) Update(conn *websocket.Conn) error{
 }
 
 
-func (lbl * Label) ClientEvent(data any) {
+func (lbl * Label) ClientEvent(conn *websocket.Conn, data any) error {
 
 	fmt.Printf("received label event %v\n", data)	
+	return nil
+
 }
 

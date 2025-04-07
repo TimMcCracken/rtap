@@ -4,25 +4,29 @@
 package hmi
 
 import (
-//	_ "embed"
-//	"encoding/json"
-//	"flag"
 	"fmt"
-//	"html/template"
-//	"log"
-//	"maps"
-//	"net/http"
-//	"time"
-	 
 	"github.com/yuin/gopher-lua"
-//	"github.com/gorilla/websocket"
-//	"rtap/hmi/domterm"
-//	mq "rtap/message_q"
-//	"rtap/hmi/widget"
+    "rtap/hmi/widget"
 )
 
 
+// ----------------------------------------------------------------------------
+// help function to convert a Lua table to a Go map[string]string
+// ----------------------------------------------------------------------------
+func luaTableToStringMap(tbl *lua.LTable) map[string]string {
+	result := make(map[string]string)
 
+	tbl.ForEach(func(key, value lua.LValue) {
+		// Only handle string keys and string values
+		k, ok1 := key.(lua.LString)
+		v, ok2 := value.(lua.LString)
+		if ok1 && ok2 {
+			result[string(k)] = string(v)
+		}
+	})
+
+	return result
+}
 
 
 const luaDisplayTypeName = "display"
@@ -82,7 +86,13 @@ func luaShow(L *lua.LState) int {
 // luaNewLabel
 // -----------------------------------------------------------------------------
 func luaNewLabel(L *lua.LState) int {
+
     d := checkDisplay(L)
+    lua_top := L.GetTop()
+    var lbl     * widget.Label
+    var err     error
+    var optionsMap map[string]string
+    var stylesMap map[string]string
 
     // Check that we got the correct number of arguments.
     if L.GetTop() != 8 {
@@ -97,10 +107,53 @@ func luaNewLabel(L *lua.LState) int {
     height  := L.CheckInt(6)
     zIndex  := L.CheckInt(7)
     content := L.CheckString(8)
+
+    switch lua_top {
+
+        case 8:
+            lbl, err = d.NewLabel(parent, top, left, width, height, zIndex, content, nil, nil) 
+            if err != nil {
+                fmt.Printf("We gots a problem\n")
+            }
+
+        case 9:
+            arg9 := L.Get(9) // Gets the first argument, even if it's nil
+	        if arg9 == lua.LNil {
+                optionsMap = nil
+	        } else {
+               optionsTable := L.CheckTable(9)
+        	    optionsMap = luaTableToStringMap(optionsTable)
+            }
+            lbl, err = d.NewLabel(parent, top, left, width, height, zIndex, content, optionsMap, nil) 
     
-    lbl, err := d.NewLabel(parent, top, left, width, height, zIndex, content) 
-    if err != nil {
-        fmt.Printf("We gots a problem\n")
+  
+        case 10:
+            arg9 := L.Get(9) // Gets the first argument, even if it's nil
+	        if arg9 == lua.LNil {
+                optionsMap = nil
+	        } else {
+               optionsTable := L.CheckTable(9)
+        	    optionsMap = luaTableToStringMap(optionsTable)
+            }
+
+            arg10 := L.Get(10) // Gets the first argument, even if it's nil
+	        if arg10 == lua.LNil {
+                stylesMap = nil
+	        } else {
+                stylesTable := L.CheckTable(10)
+        	    stylesMap = luaTableToStringMap(stylesTable)
+            }
+
+
+
+            lbl, err = d.NewLabel(parent, top, left, width, height, zIndex, content, optionsMap, stylesMap) 
+            if err != nil {
+                fmt.Printf("We gots a problem\n")
+            }
+
+        default:
+
+            // this is an error
     }
 
     ud := L.NewUserData()
@@ -131,8 +184,11 @@ func luaNewDigitalClock(L *lua.LState) int {
     height  := L.CheckInt(6)
     zIndex  := L.CheckInt(7)
     content := L.CheckString(8)
+
+    // TODO: options and styles
     
-    dc, err := d.NewDigitalClock(parent, top, left, width, height, zIndex, content) 
+
+    dc, err := d.NewDigitalClock(parent, top, left, width, height, zIndex, content, nil, nil) 
     if err != nil {
         fmt.Printf("We gots a problem\n")
     }

@@ -52,7 +52,7 @@ type Message struct{
 // messageQ for each domain. 
 // -----------------------------------------------------------------------------
 type MessageQ struct {
-	bp			*	bp.BufferPool
+	bp				* bp.BufferPool
 	mq_chan		 	chan Message
 	receivers		map [string]chan Message
 }
@@ -71,13 +71,11 @@ func (mq * MessageQ )Start(bp * bp.BufferPool) {
 		mq.mq_chan 	= make(chan Message, 256 )
 	}
 	
-
-
 	if mq.receivers == nil {
 		mq. receivers = make(map[string]chan Message, 256)
 	}
 
-	go messageQueueTask(mq)
+	go messageQueueTask(mq, bp)
 
 	fmt.Println("message queue is started")
 }
@@ -128,6 +126,7 @@ func (mq * MessageQ )Register( name string) ( chan Message, error) {
 // ---------------------------------------------
 func (mq * MessageQ )Send( destinations []string, data *[]byte) error { 
 
+
 	// -------------------------------------------------------------------------
 	// determine the senders name
 	// -------------------------------------------------------------------------
@@ -140,12 +139,18 @@ func (mq * MessageQ )Send( destinations []string, data *[]byte) error {
 	name := source[0:len(source)-len(extension)]
 
 	// -------------------------------------------------------------------------
+	// copy the data to data from the buffer pool
+	// -------------------------------------------------------------------------
+	buffer := mq.bp.Get(1024)
+	copy(*buffer, *data)
+
+	// -------------------------------------------------------------------------
 	// build the message
 	// -------------------------------------------------------------------------
 	msg := Message {
 		Source : name,
 		Destinations : destinations,
-		Data: data,
+		Data: buffer,
 	}
 
 	// -------------------------------------------------------------------------
@@ -156,18 +161,23 @@ func (mq * MessageQ )Send( destinations []string, data *[]byte) error {
 }
 
 
-func (mq * MessageQ )Receive( ch chan Message  ) (data * []byte, err error) { 
+
+func (mq * MessageQ )Receive( ch chan Message  ) (data []byte, err error) { 
 	
 	// Wait on a message
 	msg := <- ch
 
 	// copy the data from the message
+	var buffer []byte
+	copy(buffer, *msg.Data)
 
 	// return the buffer to the pool
 	mq.bp.Put(msg.Data)
+
 	// return
-	return nil, nil
+	return buffer, nil
 }
+
 
 //------------------------------------------------------------------------------
 // messageQueuLoop() runs continuosly from startup to shutdown. It receives
@@ -181,56 +191,71 @@ func (mq * MessageQ )Receive( ch chan Message  ) (data * []byte, err error) {
 // For multicast and braodcast, we send a copy of each message.
 //
 //------------------------------------------------------------------------------
-func messageQueueTask(mq * MessageQ){
+func messageQueueTask(mq * MessageQ, bp * bp.BufferPool){
 
 	fmt.Println("message queue loop started")
+
 
 	//--------------------------------------------------------------------------
 	// Loop forever, receiving from the channel and sending out to other
 	// channels as needed 
 	//--------------------------------------------------------------------------
 	for {
+
         msg := <- mq.mq_chan
-    
+
+		for key, _ := range mq.receivers {
+			fmt.Printf("Receiver: %s\n", key)
+		}
+
+		// If there are no listeners, then return the buffer to the pool
+		if len(mq.receivers) == 0 {
+			fmt.Println("No receivers")
+			bp.Put(msg.Data)
+			continue
+		}
+
 		switch len(msg.Destinations) {
 
-		case 0:
-			// todo: log a message
-			fmt.Printf("Message queue receved message with 0 destinations.")
-			mq.bp.Put(msg.Data)
-		case 1:
+			case 0:
+				// todo: log a message
+				fmt.Printf("Message queue receved message with 0 destinations.")
+				bp.Put(msg.Data)
+			case 1:
 
-			if msg.Destinations[0] == "*" { // True if "broadcast"
-				for _, ch := range mq.receivers {
-					// We need to make a copy of the message.
-					msg2 := msg
-					// get another buffer
-					buf_ptr := mq.bp.Get(1024) //.(*[]byte)   // VAR IGNORED FOR NOW
-					// copy the buffers and assign the buffer ptr
-					copy(*buf_ptr, *msg.Data)
-					*msg2.Data = *buf_ptr
-					ch <- msg2
-				}	
-				// return the original buffer to the pool
-				mq.bp.Put(msg.Data)
-			} else { // falls here if unicast
-				ch, ok := mq.receivers[msg.Destinations[0]]
-				if ok == true {
-					ch <- msg
-				} else {
-					fmt.Printf("Message queue unknown destination: [%s]", msg.Destinations)
+				if msg.Destinations[0] == "*" { // True if "broadcast"
+
+					for _, ch := range mq.receivers {
+						// We need to make a copy of the message.
+						msg2 := msg
+						// get another buffer
+						buf_ptr := bp.Get(1024) //.(*[]byte)   // VAR IGNORED FOR NOW
+
+						// copy the buffers and assign the buffer ptr
+						copy(*buf_ptr, *msg.Data)
+						*msg2.Data = *buf_ptr
+						ch <- msg2
+					}	
+					// return the original buffer to the pool
+					bp.Put(msg.Data)
+				} else { // falls here if unicast
+					ch, ok := mq.receivers[msg.Destinations[0]]
+					if ok == true {
+						ch <- msg
+					} else {
+						fmt.Printf("Message queue unknown destination: [%s]", msg.Destinations)
+					}
 				}
-			}
-		default: // true if multicast
-			for  _, rcvr_key := range msg.Destinations {
-				ch, ok := mq.receivers[rcvr_key]
-				if ok == true {
-					ch <- msg
-				} else {
-					fmt.Printf("Message queue unknown destination: [%s]", msg.Destinations)
+			default: // true if multicast
+				for  _, rcvr_key := range msg.Destinations {
+					ch, ok := mq.receivers[rcvr_key]
+					if ok == true {
+						ch <- msg
+					} else {
+						fmt.Printf("Message queue unknown destination: [%s]", msg.Destinations)
+					}
 				}
-			}
-		}	
+		}
 	}
 }
 

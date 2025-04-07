@@ -1,3 +1,27 @@
+// -----------------------------------------------------------------------------
+// display.go
+//
+// This file contatins the main display handler worker. IAs each display can
+// only display data from a single domain, it operates as a task at the domain
+// level.
+// All displays execute a Utelety Command Language (UCL) based script, whihc is
+// stored in the display (sqlite) file. Displays can optionally have declared
+// elements as well, which will be loaded and created prior to calling the UCL
+// code.
+//
+// Evenutally displays will also support the 'D3' vosualization libraries.  
+//
+// Note that this module only contains the high level display functionality. 
+// The primiteives are all contained in the HMI package.
+//
+// Rev By  Date     Description
+// --- --- -------- ------------------------------------------------------------
+//
+//
+//
+//
+// -----------------------------------------------------------------------------
+
 
 
 package domain
@@ -11,25 +35,20 @@ import (
 	"encoding/json"
 
 	"github.com/glebarez/sqlite"
-	"github.com/google/uuid"
+//	"github.com/google/uuid"
 
 	"github.com/yuin/gopher-lua"
 	ws "github.com/gorilla/websocket"
 	
-	"rtap/dacc"
-	
-	"rtap/hmi"
-	"rtap/hmi/domterm"
-	"rtap/hmi/widget"
 
-	"rtap/rtdsms"
 	bp "rtap/buffer_pool"
-	mq "rtap/message_q"
+	"rtap/hmi/domterm"
+	"rtap/dacc"
+	"rtap/hmi"
 	"rtap/metronome"
-
-//	"rtap/hmi"
-//	"os"
-//	"time"
+	mq "rtap/message_q"
+	"rtap/rtdsms"
+	"rtap/hmi/widget"
 )
 
 
@@ -45,26 +64,32 @@ type Domain struct {
 	bufferPool		bp.BufferPool
 
 
-	// Variable used by the JMI subsystem
-	hmiChannel		chan mq.Message 
-	hmiWorkers		map[uuid.UUID]chan []byte 
+	// Variables used by the JMI subsystem
+	handlerMessageQueue	mq.MessageQ
+	mqChannel			chan mq.Message	 			// for messages rec'd from the message_q 
+	handlerChannel		chan mq.Message				// for messages rec'd from displayHandler workers 
+//	handlerTxChannels	map[uuid.UUID]mq.Message	// for messages to transmit to displayHandler workers
 }
 
 
-
+// TODO: Try to eliminate this code later. It is used by REALM
 func (domain * Domain)  MessageQueue() (* mq.MessageQ) {
 
 	return &domain.messageQueue
 }
 
 
+
 func (domain * Domain) Start() {
 	
 	domain.bufferPool.Start()
 	domain.messageQueue.Start(&domain.bufferPool)
+	domain.handlerMessageQueue.Start(&domain.bufferPool)
+
 	domain.metronome.Start(&domain.bufferPool, &domain.messageQueue)
  
-	domain.dacc.Start(&domain.bufferPool, &domain.messageQueue)
+	// temporarily not started
+	//	domain.dacc.Start(&domain.bufferPool, &domain.messageQueue)
 
 	go domain.HMITask() 
 
@@ -72,22 +97,13 @@ func (domain * Domain) Start() {
 
 
 
-
-
-
-var upgrader = ws.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all connections
-	},
-}
-
-
 // -----------------------------------------------------------------------------
-// construct   () 
+// construct   ()  TODO: I had a different name for this, but it escapes me.
+// try to remember waht it was
 // -----------------------------------------------------------------------------
 func (domain * Domain) Construct(filename string) error  {
 
-//	fmt.Printf("Constructing domain [%s]\n", domain.descriptor.domain_name)
+	//	fmt.Printf("Constructing domain [%s]\n", domain.descriptor.domain_name)				
 
 	if domain.Datastores_map == nil {
 		domain.Datastores_map = make(map[string]int)
@@ -158,10 +174,6 @@ func (domain * Domain) Construct(filename string) error  {
 		}
 	}
 
-
-
-//	fmt.Printf("domain done.\n")
-
 	return nil
 }
 
@@ -188,248 +200,264 @@ func (domain * Domain) HMITask() {
 		fmt.Printf("ERROR! Invalid object name [HMI]: %v\n", err)
 		return
 	}
+	domain.mqChannel = ch
 	
 	// -------------------------------------------------------------------------
 	// Create a channel for displayWorkers to send messages
 	// -------------------------------------------------------------------------
-
-	
-
-	for {
-		msg := <- ch
-
-		fmt.Printf("Got an HMI msg.\n")
-
-		domain.bufferPool.Put(msg.Data)
-	
+	domain.handlerChannel = make(chan mq.Message) 
+	if err != nil {
+		fmt.Printf("ERROR! Invalid object name [HMI]: %v\n", err)
+		return
 	}
-
-
-}
-
-
-
-func (domain * Domain)DisplayHandlerStub(w http.ResponseWriter, r *http.Request) {
-
-
-	// Parse the URL variables
-//	vars := mux.Vars(r)
-//	realm := vars["realm"]
-//	domain := vars["domain"]
-//	name := vars["name"] //display name
-
-	// Validate the URL variables
-
-
-//	fmt.Printf("Realm : %s\n", realm)
-//	fmt.Printf("Domain: %s\n", domain)
-//	fmt.Printf("D Name: %s\n", name)
-
-
-
-
-conn, err := upgrader.Upgrade(w, r, nil)
-if err != nil {
-	log.Println("Error upgrading connection:", err)
-	return
-}
-defer conn.Close()
-
-
-
-fmt.Println("Starting display handler.")
-
-// authenticate the connection
-
-// Get the realm, if any. make smart enought to default if only 1
-
-// Get the domain, if any. make smart enought tp default if only 1
-
-
-
-// -------------------------------------------------------------------------
-// Create a display object
-// -------------------------------------------------------------------------
-display := hmi.NewDisplay()
 	
-
-// -------------------------------------------------------------------------
-// Create a lua state
-// -------------------------------------------------------------------------
-L := lua.NewState()
-defer L.Close()
-
-hmi.RegisterDisplayType(L)
-widget.RegisterLabelType(L)
-widget.RegisterDigitalClockType(L)
-
-// Add it to Lua
-ud := L.NewUserData()
-ud.Value = &display
-L.SetMetatable(ud, L.GetTypeMetatable("display"))
-L.Push(ud)
-L.SetGlobal("display", ud)
-
-
-
-// -------------------------------------------------------------------------
-// hmiChan is a channel to receive messages from the hmiTask that processes 
-// messages from the messageQ
-// -------------------------------------------------------------------------
-hmiChan := make(chan mq.Message)
-
-// -------------------------------------------------------------------------
-// clientChan is a channel to receive messages from the client via the 
-// web socket connetion..
-// -------------------------------------------------------------------------
-clientChan 	:= make(chan []byte)
-
-// -------------------------------------------------------------------------
-// tickChan is used to keep digital clocks updated. without it, we would
-// get concurrent access errors on the web socket connection.
-// -------------------------------------------------------------------------
-tickChan 	:= make(chan int)
-
-// -------------------------------------------------------------------------
-// The following is an anonymous go routine that recives messages from the
-// web socket and foreads them to the client channel.
-// -------------------------------------------------------------------------
-go func(){
+	// -------------------------------------------------------------------------
+	// Listen for messages from both the message queue and all the displays that
+	// are active on this domain.
+	// -------------------------------------------------------------------------
 	for {
-		msgtype, payload, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Error reading message:", err)
-			return
-		} else {
-			fmt.Printf("Message Type %v\n", msgtype)
-			
-			payload = payload
-			msgtype = msgtype
 
-			clientChan <- payload
+		select {
+		
+			// For now, and message received on the HMI channel will be sent to
+			// all the displayHandler workers. Later, this will be upgraded to
+			// use the publish/subscribe model
+			case mqMsg := <- domain.mqChannel:
+//				fmt.Println("Received MQ Msg:", mqMsg)
+				
+				// Change the destinations to *
+				mqMsg.Destinations = mqMsg.Destinations[:0]
+				mqMsg.Destinations = append(mqMsg.Destinations, "*")
+				
+				// send the message on the handler Queue
+				domain.handlerMessageQueue.Send(mqMsg.Destinations, mqMsg.Data)
+				
+				// return the buffer to the pool
+				domain.bufferPool.Put(mqMsg.Data)
+			
+				// For now, just silently discard everything. This is where 
+				// our publish.subscribe messages and operator actions will
+				// come through
+			case handlerMsg := <- domain.handlerChannel:
+				fmt.Println("Received Handler MSG:", handlerMsg)
+				domain.bufferPool.Put(handlerMsg.Data)
 		}
 	}
-}()
-
-
-fmt.Println("Starting lua.")
-if err := L.DoString(hmi.DisplayTest); err != nil {
-
-	fmt.Printf("Lua Error: %v\n", err)
-
-	//panic(err)
-}
-fmt.Println("Finished Lua DoString().")
-
-
-// Get the "main" function from Lua
-mainFunc := L.GetGlobal("main")
-if mainFunc.Type() == lua.LTFunction {
-	// Call main() in Lua
-	if err := L.CallByParam(lua.P{
-		Fn:      mainFunc,
-		NRet:    0, // Number of return values expected
-		Protect: true,
-	}); err != nil {
-		fmt.Println("Error calling Lua function:", err)
-	}
-} else {
-	fmt.Println("Error: 'main' function not found in Lua state.")
 }
 
-fmt.Println("Finished Lua main.")
 
 
 
-// -------------------------------------------------------------------------
-// The following is test code while we more fully develop the dHMI sytem
-// -------------------------------------------------------------------------
-// set the page style
-attributes := make(map[string]string)
-attributes["background-color"] = "Black"
-attributes["color"] = "White"
-domterm.SetStyle( conn, "html", attributes)
-clear(attributes)
+// -----------------------------------------------------------------------------
+// upgrader is used by the displayHandler method
+// -----------------------------------------------------------------------------
+
+var upgrader = ws.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all connections
+	},
+}
 
 
-// -------------------------------------------------------------------------
-// Send all the display objects to the client browser
-// -------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Domain.DisplayHandler() is created for each 'display' request. A display may
+// be a complete display, but may also be a component used int he desktop.
+// -----------------------------------------------------------------------------
+func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 
-fmt.Println("starting show()")
+	fmt.Println("Starting display handler.")
 
-display.Show(conn)
-
-fmt.Println("finished show()")
-
-
-// -------------------------------------------------------------------------
-// Create a goroutine to update the digital clocks if any
-// -------------------------------------------------------------------------
-go func(){
-
-	for {
-		tickChan <- 0
-		time.Sleep(1 * time.Second)
+	// -------------------------------------------------------------------------
+	// Upgrade tje cpmmectopm tp a wenspcket
+	// -------------------------------------------------------------------------
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error upgrading connection:", err)
+		return
 	}
+	defer conn.Close()
 
-}()
+	// todo: authenticate the connection and get the username associated 
+	// with the connection.
 
 
-// -------------------------------------------------------------------------
-// The following is our loop that runs until the connection is terminated.
-// This code responds to all the events coming in.
-// -------------------------------------------------------------------------
-for {
-	select {
+	// -------------------------------------------------------------------------
+	// Create a display object
+	// -------------------------------------------------------------------------
+	display := hmi.NewDisplay()
+	
 
-		// ----------------------------------------------------------------
-		// These will be events sent from RTAP via the messageQ and HMITask
-		// ----------------------------------------------------------------
-		case _ = <- tickChan:
-			fmt.Printf("received tick %v\n", time.Now().Unix())
+	// -------------------------------------------------------------------------
+	// Create a lua state
+	// -------------------------------------------------------------------------
+	L := lua.NewState()
+	defer L.Close()
 
-			for _, dc := range display.ClockMap {
-				err = dc.Update(conn)
-				if err != nil {
-					fmt.Printf("display error: %v\n", err)
-					return
-				}
+	hmi.RegisterDisplayType(L)
+	widget.RegisterLabelType(L)
+	widget.RegisterDigitalClockType(L)
+
+	// Add it to Lua
+	ud := L.NewUserData()
+	ud.Value = &display
+	L.SetMetatable(ud, L.GetTypeMetatable("display"))
+	L.Push(ud)
+	L.SetGlobal("display", ud)
+
+
+
+	// -------------------------------------------------------------------------
+	// hmiChan is a channel to receive messages from the hmiTask that processes 
+	// messages from the messageQ
+	// -------------------------------------------------------------------------
+	hmiChan := make(chan mq.Message)
+
+	// -------------------------------------------------------------------------
+	// clientChan is a channel to receive messages from the client via the 
+	// web socket connetion..
+	// -------------------------------------------------------------------------
+	clientChan 	:= make(chan []byte)
+
+	// -------------------------------------------------------------------------
+	// tickChan is used to keep digital clocks updated. without it, we would
+	// get concurrent access errors on the web socket connection.
+	// -------------------------------------------------------------------------
+	tickChan 	:= make(chan int)
+
+	// -------------------------------------------------------------------------
+	// The following is an anonymous go routine that recives messages from the
+	// web socket and foreads them to the client channel.
+	// -------------------------------------------------------------------------
+	go func(){
+		for {
+			msgtype, payload, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("Error reading message:", err)
+				return
+			} else {
+				fmt.Printf("Message Type %v\n", msgtype)
+			
+				payload = payload
+				msgtype = msgtype
+				clientChan <- payload
 			}
+		}
+	}()
 
 
-		// ----------------------------------------------------------------
-		// These will be events sent from RTAP via the messageQ and HMITask
-		// ----------------------------------------------------------------
-		case hmiMsg := <- hmiChan:
-		fmt.Println("received msqgq", hmiMsg)
+	fmt.Println("Starting lua.")
+	if err := L.DoString(hmi.DisplayTest); err != nil {
+
+		fmt.Printf("Lua Error: %v\n", err)
+
+		//panic(err)
+	}
+	fmt.Println("Finished Lua DoString().")
+
+
+	// Get the "main" function from Lua
+	mainFunc := L.GetGlobal("main")
+	if mainFunc.Type() == lua.LTFunction {
+		// Call main() in Lua
+		if err := L.CallByParam(lua.P{
+			Fn:      mainFunc,
+			NRet:    0, // Number of return values expected
+			Protect: true,
+		}); err != nil {
+			fmt.Println("Error calling Lua function:", err)
+		}
+	} else {
+		fmt.Println("Error: 'main' function not found in Lua state.")
+	}
+
+	fmt.Println("Finished Lua main.")
+
+	// -------------------------------------------------------------------------
+	// The following is test code while we more fully develop the dHMI sytem
+	// -------------------------------------------------------------------------
+	// set the page style
+	attributes := make(map[string]string)
+	attributes["background-color"] = "Black"
+	attributes["color"] = "White"
+	domterm.SetStyle( conn, "html", attributes)
+	clear(attributes)
+
+
+	// -------------------------------------------------------------------------
+	// Send all the display objects to the client browser
+	// -------------------------------------------------------------------------
+
+	fmt.Println("starting show()")
+	display.Show(conn)
+	fmt.Println("finished show()")
+
+
+	// -------------------------------------------------------------------------
+	// Create a goroutine to update the digital clocks if any
+	// -------------------------------------------------------------------------
+	go func(){
+
+		for {
+			tickChan <- 0
+			time.Sleep(1 * time.Second)
+		}
+
+	}()
+
+
+	// -------------------------------------------------------------------------
+	// The following is the loop that runs until the connection is terminated.
+	// This code responds to all the events coming in.
+	// -------------------------------------------------------------------------
+	for {
+		select {
+
+			// ----------------------------------------------------------------
+			// These will be events sent from RTAP via the messageQ and HMITask
+			// ----------------------------------------------------------------
+			case _ = <- tickChan:
+				fmt.Printf("received tick %v\n", time.Now().Unix())
+
+				for _, dc := range display.ClockMap {
+					err = dc.Update(conn)
+					if err != nil {
+						fmt.Printf("display error: %v\n", err)
+						return
+					}
+				}
+
+
+			// ----------------------------------------------------------------
+			// These will be events sent from RTAP via the messageQ and HMITask
+			// ----------------------------------------------------------------
+			case hmiMsg := <- hmiChan:
+			fmt.Println("received msqgq", hmiMsg)
   
 
-		// ----------------------------------------------------------------
-		// These will be events sent from the client browser
-		// ----------------------------------------------------------------
-		case clientMsg := <- clientChan:
+			// ----------------------------------------------------------------
+			// These will be events sent from the client browser
+			// ----------------------------------------------------------------
+			case clientMsg := <- clientChan:
 
-		var data map[string]any
-		err := json.Unmarshal(clientMsg, &data)
-		if err != nil {
-			fmt.Printf("!!!!!!!!!!!!!!!!  doing the fatal error\n")
-			log.Fatal(err)
-		}
+			var data map[string]any
+			err := json.Unmarshal(clientMsg, &data)
+			if err != nil {
+				fmt.Printf("!!!!!!!!!!!!!!!!  doing the fatal error\n")
+				log.Fatal(err)
+			}
 	
-		target_id, ok := data["id"]
-		if ok == false {
-			fmt.Printf("Error parsing target id\n")
-		} else {
-		
-			widget, ok := display.WidgetMap[target_id.(string)]
+			target_id, ok := data["id"]
 			if ok == false {
 				fmt.Printf("Error parsing target id\n")
 			} else {
-				widget.ClientEvent(data)
+		
+				widget, ok := display.WidgetMap[target_id.(string)]
+				if ok == false {
+					fmt.Printf("Error parsing target id\n")
+				} else {
+					widget.ClientEvent(conn, data)
+				}
 			}
-		}
-
-	}			
-}
+		}			
+	}
 }

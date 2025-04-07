@@ -96,6 +96,8 @@ func (m * Metronome) Start(bp * bp.BufferPool, mq * mq.MessageQ) {
 
 func metronomeTask(bp * bp.BufferPool, mq * mq.MessageQ) {
 
+	destinations := []string {"*"}
+
 	// Declare the structure for the data to be marshalled.
 	var pb_tick pb.Tick
 
@@ -148,7 +150,7 @@ func metronomeTask(bp * bp.BufferPool, mq * mq.MessageQ) {
 		// -------------------------------------------------------------------------
 		// Get a buffer from the pool
 		// -------------------------------------------------------------------------
-		buf_ptr := bp.Get(1024) //.(*[]byte)  // fixed size for now. May change later
+//		buf_ptr := bp.Get(1024) //.(*[]byte)  // fixed size for now. May change later
 		
 		// -------------------------------------------------------------------------
 		// Marshall the data and copy it into the buffer
@@ -156,26 +158,25 @@ func metronomeTask(bp * bp.BufferPool, mq * mq.MessageQ) {
 		data, err := proto.Marshal(&pb_tick)
 		if err != nil {
 			// TODO: fix this
-    		fmt.Printf("Failed to encode address book:", err)
+    		fmt.Printf("Failed to encode pb_tick:", err)
 		}
 
 		// -------------------------------------------------------------------------
 		// Ensure buffer is large enough
 		// -------------------------------------------------------------------------
-		if len(data) > cap(*buf_ptr) {
-			fmt.Printf("Buffer is too small.")
-		}
+//		if len(data) > cap(*buf_ptr) {
+//			fmt.Printf("Buffer is too small.")
+//		}
 
 		// -------------------------------------------------------------------------
 		// Copy marshaled data into the buffer to minimize allocations
 		// -------------------------------------------------------------------------
-		copy(*buf_ptr, data)		
+//		copy(*buf_ptr, data)		
 
 		// -------------------------------------------------------------------------
 		// Send the data to the message_q.
 		// -------------------------------------------------------------------------
-		destinations := []string {"*"}
-		mq.Send(destinations, buf_ptr)
+		mq.Send(destinations, &data)
 
 	}
 }

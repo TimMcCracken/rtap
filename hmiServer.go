@@ -75,7 +75,7 @@ func (RTAP * rtapSystem ) HMIServerTask(serverAddress string) {
 
 
 
-	r.HandleFunc("/ws/display/r/{realm:[0-9a-zA-Z]+}/d/{domain:[0-9a-zA-Z]+}/n/{name:[0-9a-zA-Z]+}", domain.DisplayHandlerStub)
+	r.HandleFunc("/ws/display/r/{realm:[0-9a-zA-Z]+}/d/{domain:[0-9a-zA-Z]+}/n/{name:[0-9a-zA-Z]+}", domain.DisplayHandler)
 	
 	r.HandleFunc("/js/domterm.js", domtermHandler)
 

@@ -32,19 +32,6 @@ func TestDownload(t *testing.T) {
 		fmt.Printf("Error constructing realm: %v", err)
 	}
 
-//	mq, err := MessageQueue("devscada", "prod")
-//	if err != nil {
-//		fmt.Printf("Error getting message queue: %v", err)
-//	}
-
-
-
-//	ch, err := mq.Register("mychannel")
-//	if err != nil {
-//		fmt.Printf("Error registering: %v", err)
-//	}
-	//ch = ch
-
 	
 
 	domain, err := realm.Domain("prod")
