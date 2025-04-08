@@ -23,7 +23,7 @@ import (
 	_ "embed"
 	"encoding/json"
 //	"flag"
-//	"fmt"
+	"fmt"
 //	"html/template"
 	"log"
 	"maps"
@@ -42,6 +42,49 @@ type message struct {
 	TargetID	string	`json:"targetID"`
 	Data		map[string]string `json:"data"`
 }
+
+
+// -----------------------------------------------------------------------------
+// ShowResponseError() appends an error message to the display
+// -----------------------------------------------------------------------------
+func ShowResponseError(conn *websocket.Conn, respCode int, msg string) error {
+
+	attributes := make(map[string]string)
+
+	switch respCode {
+	case 500:
+		attributes["innerHTML"] = "500 Internal Server Error"
+	case 501:
+		attributes["innerHTML"] = "501 Not Implemented"
+	case 502:
+		attributes["innerHTML"] = "502 Bad Gateway"
+
+	default:
+		attributes["innerHTML"] = fmt.Sprintf("Undefined code: %d in ShowResponseError()")
+	}
+
+	AppendElement( conn, "body", "h1", attributes)
+	clear(attributes)
+
+	attributes["innerHTML"] = msg
+	AppendElement( conn, "body", "p", attributes)
+
+	
+/*
+	jmsg, err := json.Marshal(&msg)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return err
+	}
+	err = conn.WriteMessage(1, []byte(jmsg))
+	if err != nil {
+		log.Println("Error writing JSON message:", err)
+		return err
+	}
+*/
+	return nil   
+}
+
 
 
 // -----------------------------------------------------------------------------

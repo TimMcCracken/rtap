@@ -82,6 +82,7 @@ func luaShow(L *lua.LState) int {
 
 
 
+
 // -----------------------------------------------------------------------------
 // luaNewLabel
 // -----------------------------------------------------------------------------
@@ -95,10 +96,10 @@ func luaNewLabel(L *lua.LState) int {
     var stylesMap map[string]string
 
     // Check that we got the correct number of arguments.
-    if L.GetTop() != 8 {
-        L.ArgError(1, "8 arguments expected including object")
-        return 0
-    }
+//    if L.GetTop() != 8 {
+ //       L.ArgError(1, "8 arguments expected including object")
+ //       return 0
+ //   }
 
     parent  := L.CheckString(2)
     top     := L.CheckInt(3)
@@ -121,7 +122,7 @@ func luaNewLabel(L *lua.LState) int {
 	        if arg9 == lua.LNil {
                 optionsMap = nil
 	        } else {
-               optionsTable := L.CheckTable(9)
+                optionsTable := L.CheckTable(9)
         	    optionsMap = luaTableToStringMap(optionsTable)
             }
             lbl, err = d.NewLabel(parent, top, left, width, height, zIndex, content, optionsMap, nil) 
@@ -132,7 +133,7 @@ func luaNewLabel(L *lua.LState) int {
 	        if arg9 == lua.LNil {
                 optionsMap = nil
 	        } else {
-               optionsTable := L.CheckTable(9)
+                optionsTable := L.CheckTable(9)
         	    optionsMap = luaTableToStringMap(optionsTable)
             }
 
@@ -153,7 +154,9 @@ func luaNewLabel(L *lua.LState) int {
 
         default:
 
-            // this is an error
+            L.ArgError(1, "8, 9, or 10 arguments expected including object")
+            return 0
+            
     }
 
     ud := L.NewUserData()

@@ -267,8 +267,13 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Starting display handler.")
 
+	// todo: authenticate the connection and get the username associated 
+	// with the connection.
+
+
+
 	// -------------------------------------------------------------------------
-	// Upgrade tje cpmmectopm tp a wenspcket
+	// Upgrade the connection to a wenspcket
 	// -------------------------------------------------------------------------
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -277,8 +282,6 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// todo: authenticate the connection and get the username associated 
-	// with the connection.
 
 
 	// -------------------------------------------------------------------------
@@ -297,14 +300,14 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 	widget.RegisterLabelType(L)
 	widget.RegisterDigitalClockType(L)
 
-	// Add it to Lua
+	// -------------------------------------------------------------------------
+	// Add the display to Lua as a global variable
+	// -------------------------------------------------------------------------
 	ud := L.NewUserData()
 	ud.Value = &display
 	L.SetMetatable(ud, L.GetTypeMetatable("display"))
 	L.Push(ud)
 	L.SetGlobal("display", ud)
-
-
 
 	// -------------------------------------------------------------------------
 	// hmiChan is a channel to receive messages from the hmiTask that processes 
@@ -348,9 +351,13 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Starting lua.")
 	if err := L.DoString(hmi.DisplayTest); err != nil {
 
-		fmt.Printf("Lua Error: %v\n", err)
+		// TODO Log an error
+		eMsg := fmt.Sprintf("Lua parsing error: %v", err)
+		fmt.Println(eMsg)
 
-		//panic(err)
+		// send the message to the browser, and quit!
+		domterm.ShowResponseError(conn, 500, eMsg)
+		return
 	}
 	fmt.Println("Finished Lua DoString().")
 
@@ -364,10 +371,18 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 			NRet:    0, // Number of return values expected
 			Protect: true,
 		}); err != nil {
-			fmt.Println("Error calling Lua function:", err)
+			eMsg := fmt.Sprintf("Lua error in main(): %s", err)
+			fmt.Println(eMsg)
+			// send the message to the browser, and quit!
+			domterm.ShowResponseError(conn, 500, eMsg)
+			return
 		}
 	} else {
-		fmt.Println("Error: 'main' function not found in Lua state.")
+		eMsg := fmt.Sprintf("Error: 'main()' function not found in Lua state.")
+		fmt.Println(eMsg)
+		// send the message to the browser, and quit!
+		domterm.ShowResponseError(conn, 500, eMsg)
+		return
 	}
 
 	fmt.Println("Finished Lua main.")

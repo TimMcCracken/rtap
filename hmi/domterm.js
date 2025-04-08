@@ -66,6 +66,12 @@ var appendElement = function(msg){
             continue;
         }
 
+        if (key == "innerHTML") {
+            newElement.innerHTML = msg.data[key];
+            continue;
+        }
+
+
         if (key in newElement) {
             const value = msg.data[key];
             newElement.setAttribute(key, value);
