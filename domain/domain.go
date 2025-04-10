@@ -299,6 +299,7 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 	hmi.RegisterDisplayType(L)
 	widget.RegisterLabelType(L)
 	widget.RegisterDigitalClockType(L)
+	widget.RegisterAnalogValueType(L)
 
 	// -------------------------------------------------------------------------
 	// Add the display to Lua as a global variable
@@ -433,8 +434,8 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 			case _ = <- tickChan:
 				fmt.Printf("received tick %v\n", time.Now().Unix())
 
-				for _, dc := range display.ClockMap {
-					err = dc.Update(conn)
+				for _, ndx := range display.ClockMap {
+					err = dc.Widgets[ndx].UpdateRealtime(conn)
 					if err != nil {
 						fmt.Printf("display error: %v\n", err)
 						return

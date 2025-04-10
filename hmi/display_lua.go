@@ -68,6 +68,8 @@ const luaDisplayTypeName = "display"
 var displayMethods = map[string]lua.LGFunction{
     "newLabel": luaNewLabel,
     "newDigitalClock": luaNewDigitalClock,
+    "newAnalogValue": luaNewAnalogValue,
+
 
     "show" : luaShow,
 }
@@ -94,12 +96,6 @@ func luaNewLabel(L *lua.LState) int {
     var err     error
     var optionsMap map[string]string
     var stylesMap map[string]string
-
-    // Check that we got the correct number of arguments.
-//    if L.GetTop() != 8 {
- //       L.ArgError(1, "8 arguments expected including object")
- //       return 0
- //   }
 
     parent  := L.CheckString(2)
     top     := L.CheckInt(3)
@@ -145,18 +141,15 @@ func luaNewLabel(L *lua.LState) int {
         	    stylesMap = luaTableToStringMap(stylesTable)
             }
 
-
-
             lbl, err = d.NewLabel(parent, top, left, width, height, zIndex, content, optionsMap, stylesMap) 
             if err != nil {
                 fmt.Printf("We gots a problem\n")
             }
 
         default:
-
-            L.ArgError(1, "8, 9, or 10 arguments expected including object")
+            msg := fmt.Sprintf("8, 9, or 10 arguments expected including object. Got %d.", lua_top)
+            L.ArgError(1, msg)
             return 0
-            
     }
 
     ud := L.NewUserData()
@@ -205,11 +198,91 @@ func luaNewDigitalClock(L *lua.LState) int {
 }
 
 
+// -----------------------------------------------------------------------------
+// luaNewAnalogValue
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// luaNewLabel
+// -----------------------------------------------------------------------------
+func luaNewAnalogValue(L *lua.LState) int {
+
+    d := checkDisplay(L)
+    lua_top := L.GetTop()
+    var av     * widget.AnalogValue
+    var err     error
+    var optionsMap map[string]string
+    var stylesMap map[string]string
+
+    parent  := L.CheckString(2)
+    top     := L.CheckInt(3)
+    left    := L.CheckInt(4)
+    width   := L.CheckInt(5)
+    height  := L.CheckInt(6)
+    zIndex  := L.CheckInt(7)
+    content := L.CheckString(8)
+
+    switch lua_top {
+
+        case 8:
+                av, err = d.NewAnalogValue(parent, top, left, width, height, zIndex, content, nil, nil) 
+            if err != nil {
+                fmt.Printf("We gots a problem\n")
+            }
+
+        case 9:
+            arg9 := L.Get(9) // Gets the first argument, even if it's nil
+	        if arg9 == lua.LNil {
+                optionsMap = nil
+	        } else {
+                optionsTable := L.CheckTable(9)
+        	    optionsMap = luaTableToStringMap(optionsTable)
+            }
+            av, err = d.NewAnalogValue(parent, top, left, width, height, zIndex, content, optionsMap, nil) 
+    
+  
+        case 10:
+            arg9 := L.Get(9) // Gets the first argument, even if it's nil
+	        if arg9 == lua.LNil {
+                optionsMap = nil
+	        } else {
+                optionsTable := L.CheckTable(9)
+        	    optionsMap = luaTableToStringMap(optionsTable)
+            }
+
+            arg10 := L.Get(10) // Gets the first argument, even if it's nil
+	        if arg10 == lua.LNil {
+                stylesMap = nil
+	        } else {
+                stylesTable := L.CheckTable(10)
+        	    stylesMap = luaTableToStringMap(stylesTable)
+            }
+
+            av, err = d.NewAnalogValue(parent, top, left, width, height, zIndex, content, optionsMap, stylesMap) 
+            if err != nil {
+                fmt.Printf("We gots a problem\n")
+            }
+
+        default:
+            msg := fmt.Sprintf("8, 9, or 10 arguments expected including object. Got %d.", lua_top)
+            L.ArgError(1, msg)
+            return 0
+            
+    }
+
+    ud := L.NewUserData()
+	ud.Value = &av
+
+    L.SetMetatable(ud, L.GetTypeMetatable("analogValue"))
+    L.Push(ud)
+    return 1
+}
 
 
 
 
 
+
+/*
     // Getter and setter for the Person#Name
     func displayGetSetName(L *lua.LState) int {
         d := checkDisplay(L)
@@ -224,3 +297,4 @@ func luaNewDigitalClock(L *lua.LState) int {
 //        L.Push(lua.LString(d.Name))
         return 1
     }
+*/

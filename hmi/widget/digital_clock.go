@@ -5,45 +5,27 @@
 
 package widget
 
-
-
-
-
-/*
-[[--
-	dc1 = display:NewDigitalClock("body", 100, 50, 200, 0, 1, "Local" )
-	
-    dc2 = display:NewDigitalClock("body", 100, 300, 200, 0, 1, "New York" ) 
-	
-    dc3 = display:NewDigitalClock("body", 100, 550, 200, 0, 1, "UTC" )  ]]
-
-*/
 import (
 	_ "embed"
 	"fmt"
 	"rtap/hmi/domterm"
 	"time"
-//	"gorm.io/gorm"
 	"github.com/yuin/gopher-lua"
 	"github.com/gorilla/websocket"
 )
 
 
 type DigitalClock struct {
-	Global		domterm.GlobalAttributes
 	DisplayID	string
-	Parent		string
-	Top			int
-	Left		int
-	Height		int
-	Width		int
-	ZIndex		int
+	Req			required
 	Format		string
-	Timezone	string
+	Title		string
 
-	// unexported properties below
+	// uneported values
+	timezone	string
 	tzLocation	*time.Location
-	title		string
+
+
 	// lastValue is used to decide if we need to send again. Handy for dates
 	// and time without seconds, etc.
 	lastValue	string 
@@ -87,43 +69,33 @@ func init() {
 }
 
 
-func (dc * DigitalClock) Init(id string, parent string, top int, left int, width int, height int, 
-							zIndex int, content string, 
-							options map[string]string, styles map[string]string ) error {
 
-	// TODO: Check params esp id and parent
-
-	dc.DisplayID = id
-	dc.Parent = parent
-	dc.Top = top
-	dc.Left = left
-	dc.Width = width
-	dc.Height = height
-	dc.ZIndex = zIndex
-	dc.Timezone = content
-
-	if dc.Timezone == "" {
-		dc.Timezone = "Local"
-	}
-
-
-	tzLocation, err := time.LoadLocation(dc.Timezone)
-	if err != nil {
-		dc.Timezone = "ERROR"
-		// todo: add an error message to title
-		dc.title = fmt.Sprintf("Timezone error: %v",  err)
-		return nil
-	}
-	dc.title = fmt.Sprintf("Timezone: %s",dc.Timezone)
-	dc.tzLocation = tzLocation
-	return nil
-}
 
 func (dc * DigitalClock) Show(conn *websocket.Conn) error {
 
+
+
+	if dc.Req.content == "" {
+		dc.timezone = "Local"
+	} else {
+		dc.timezone = dc.Req.content
+									
+		tzLocation, err := time.LoadLocation(dc.timezone)
+		if err != nil {
+			dc.timezone = "ERROR"
+			dc.Title = fmt.Sprintf("Timezone error: %v",  err)
+			fmt.Printf("Timezone error: %v\n", err)
+		} else {
+			dc.Title = fmt.Sprintf("Timezone: %s",dc.timezone)
+			dc.tzLocation = tzLocation
+		}
+	}
+
+
+
 	// Append the basic element
 	attributes := make(map[string]string)
-	attributes["title"] = dc.title
+	attributes["title"] = dc.Title
 	attributes["tag"] 	= "output"
 	attributes["id"] 	= dc.DisplayID
 	attributes["style"] = "position: absolute;"
@@ -138,18 +110,18 @@ func (dc * DigitalClock) Show(conn *websocket.Conn) error {
 	attributes["font"]			= "Consolas"
 	attributes["font-weight"]	= "bold"
 	attributes["font-size"]		= "32px"
-	attributes["top"]		= fmt.Sprintf("%dpx", dc.Top)
-	attributes["left"]		= fmt.Sprintf("%dpx", dc.Left)
+	attributes["top"]		= fmt.Sprintf("%dpx", dc.Req.top)
+	attributes["left"]		= fmt.Sprintf("%dpx", dc.Req.left)
 
-	if dc.Height != 0 {
-		attributes["height"]	= fmt.Sprintf("%dpx", dc.Height)
+	if dc.Req.height != 0 {
+		attributes["height"]	= fmt.Sprintf("%dpx", dc.Req.height)
 	}
-	if dc.Width != 0 {
-		attributes["width"]		= fmt.Sprintf("%dpx", dc.Width)
+	if dc.Req.width != 0 {
+		attributes["width"]		= fmt.Sprintf("%dpx", dc.Req.width)
 	}
 	domterm.SetStyle(conn, dc.DisplayID, attributes)
 
-	if dc.Timezone == "ERROR" {
+	if dc.timezone == "ERROR" {
 		domterm.SetValue(conn, dc.DisplayID, "ERROR!")
 	}
 
@@ -158,13 +130,14 @@ func (dc * DigitalClock) Show(conn *websocket.Conn) error {
 
 
 
-func (dc * DigitalClock) Update(conn *websocket.Conn) error {
+
+func (dc * DigitalClock)  UpdateRealtime(conn *websocket.Conn) error {
 
 	var ft string
 
 
 	// If the timezone could not be processed, then exit
-	if dc.Timezone == "ERROR" {
+	if dc.timezone == "ERROR" {
 		return nil  // THIS SHOULD PROBABLY BE AN ERROR, but we dont want to break later processing
 	} 
 
@@ -196,6 +169,11 @@ func (dc * DigitalClock) Update(conn *websocket.Conn) error {
 
 	return nil
 }
+
+func (dc * DigitalClock) UpdateConfig( conn *websocket.Conn ) error {
+	return nil
+}
+
 
 
 func (dc * DigitalClock) ClientEvent(conn *websocket.Conn, data any) error {

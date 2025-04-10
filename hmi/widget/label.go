@@ -10,7 +10,8 @@ import (
 	_ "embed"
 	"fmt"
 	"rtap/hmi/domterm"
-	"time"
+
+//	"time"
 //	"gorm.io/gorm"
 	"github.com/yuin/gopher-lua"
 	"github.com/gorilla/websocket"
@@ -19,19 +20,9 @@ import (
 
 
 type Label struct {
-	Global		domterm.GlobalAttributes
 	DisplayID	string 
-	Parent		string
-	Content		string
-	Top			int
-	Left		int
-	Height		int
-	Width		int
-	ZIndex		int
-
-	// unexported properties below
-	tzLocation	*time.Location
-	title		string
+	Req 		required // parameters required for all widgets
+	Title		string
 	// lastValue is used to decide if we need to send again. Handy for dates
 	// and time without seconds, etc.
 	lastValue	string 
@@ -45,7 +36,7 @@ type Label struct {
 const luaLabelTypeName = "label"
 
 // -----------------------------------------------------------------------------
-// Registers my person type to given L.
+// Registers 'label' type to a given L.
 // -----------------------------------------------------------------------------
 func RegisterLabelType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaLabelTypeName)
@@ -67,23 +58,31 @@ var labelMethods = map[string]lua.LGFunction{
 
 
 
-
+/*
 func (lbl * Label) Init(display_id string, parent string, top int, left int, width int, height int, 
 						zIndex int, content string,
 						options map[string]string, styles map[string]string  ) error {
 
+/*
+		err := lbl.req.parse(parent, top, left, width, height, zIndex, content)
+		if err != nil {
+			return err
+		}
+*/
 		// TODO: Check params esp id and parent
+		/*
 		lbl.DisplayID = display_id
-		lbl.Parent = parent
-		lbl.Top = top
-		lbl.Left = left
-		lbl.Width = width
-		lbl.Height = height
-		lbl.ZIndex = zIndex
-		lbl.Content = content
-		
+		lbl.req.parent = parent
+		lbl.req.top = top
+		lbl.req.left = left
+		lbl.req.width = width
+		lbl.req.height = height
+		lbl.req.zIndex = zIndex
+		lbl.req.content = content
+		*/
+/*
 		return nil
-}
+}*/
 	
 
 
@@ -104,17 +103,17 @@ func (lbl * Label) Show(conn *websocket.Conn) error {
 	attributes["font-weight"]	= "bold"
 	attributes["font-size"]		= "24px"
 
-	attributes["top"]		= fmt.Sprintf("%dpx", lbl.Top)
-	attributes["left"]		= fmt.Sprintf("%dpx", lbl.Left)
-	if lbl.Height != 0 {
-		attributes["height"]= fmt.Sprintf("%dpx", lbl.Height)
+	attributes["top"]		= fmt.Sprintf("%dpx", lbl.Req.top)
+	attributes["left"]		= fmt.Sprintf("%dpx", lbl.Req.left)
+	if lbl.Req.height != 0 {
+		attributes["height"]= fmt.Sprintf("%dpx", lbl.Req.height)
 	}
-	if lbl.Width != 0 {
-		attributes["width"]	= fmt.Sprintf("%dpx", lbl.Width)
+	if lbl.Req.width != 0 {
+		attributes["width"]	= fmt.Sprintf("%dpx", lbl.Req.width)
 	}
 	domterm.SetStyle(conn, lbl.DisplayID, attributes)
 
-	domterm.SetValue(conn, lbl.DisplayID, lbl.Content)
+	domterm.SetValue(conn, lbl.DisplayID, lbl.Req.content)
 
 	return nil
 }
@@ -123,9 +122,15 @@ func (lbl * Label) Show(conn *websocket.Conn) error {
 // -----------------------------------------------------------------------------
 // Update() does nothing since it is not tied to a real time value
 // -----------------------------------------------------------------------------
-func (lbl * Label) Update(conn *websocket.Conn) error{
+func (lbl * Label)UpdateRealtime(conn *websocket.Conn) error{
 	return nil
 }
+
+
+func (lbl * Label)UpdateConfig( conn *websocket.Conn ) error {
+	return nil
+}
+
 
 
 func (lbl * Label) ClientEvent(conn *websocket.Conn, data any) error {
