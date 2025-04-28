@@ -2,18 +2,11 @@ package hmi
 
 import (
 	_ "embed"
-//	"encoding/json"
-//	"flag"
 	"fmt"
-//	"html/template"
 	"log"
-//	"maps"
 	"net/http"
 	"time"
-//	"github.com/gorilla/websocket"
 	dt "rtap/hmi/domterm"
-//	"rtap/message_q"
-//	"rtap/hmi/widget"
 )
 
 

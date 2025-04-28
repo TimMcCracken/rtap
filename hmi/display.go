@@ -95,7 +95,7 @@ func NewDisplay() (Display) {
 // NewLabel()
 // -----------------------------------------------------------------------------
 func (d * Display) NewLabel(parent string, top int, left int, width int, height int, zIndex int, content string, 
-							options map[string]string, styles map[string]string) (*widget.Label, error) {
+							options * map[string]string, styles * map[string]string) (*widget.Label, error) {
 
 	// -------------------------------------------------------------------------
 	// Create the new object
@@ -116,6 +116,9 @@ func (d * Display) NewLabel(parent string, top int, left int, width int, height 
 			return nil, err
 		}
 
+	lbl.Options = options
+	lbl.Styles = styles
+	
 	// -------------------------------------------------------------------------
 	// add the object to with display's widgets slice and the widget map
 	// -------------------------------------------------------------------------
@@ -132,7 +135,7 @@ func (d * Display) NewLabel(parent string, top int, left int, width int, height 
 // NewDigitalClock()
 // -----------------------------------------------------------------------------
 func (d * Display) NewDigitalClock(parent string, top int, left int, width int, height int, zIndex int, content string,  
-									options map[string]string, styles map[string]string ) (*widget.DigitalClock, error) {
+									options * map[string]string, styles * map[string]string ) (*widget.DigitalClock, error) {
 
 	// -------------------------------------------------------------------------
 	// Create the new object
@@ -153,6 +156,9 @@ func (d * Display) NewDigitalClock(parent string, top int, left int, width int, 
 			return nil, err
 		}
 
+	dc.Options = options
+	dc.Styles = styles
+	
 	// -------------------------------------------------------------------------
 	// add the object to with display's widget map.
 	// Clocks also have to be added to a clock map for now
@@ -173,7 +179,7 @@ func (d * Display) NewDigitalClock(parent string, top int, left int, width int, 
 // NewAnalogValue()
 // -----------------------------------------------------------------------------
 func (d * Display) NewAnalogValue(parent string, top int, left int, width int, height int, zIndex int, content string,  
-	options map[string]string, styles map[string]string ) (*widget.AnalogValue, error) {
+	options * map[string]string, styles * map[string]string ) (*widget.AnalogValue, error) {
 
 	// test code, unitl the database is ready
 	d.AnalogRegionsMap["test"] = &testRegions
@@ -189,8 +195,6 @@ func (d * Display) NewAnalogValue(parent string, top int, left int, width int, h
 	av.Regions = d.AnalogRegionsMap["test"]
 	// end test code
 
-
-
 	// -------------------------------------------------------------------------
 	// Create a unique ID for the object that will be used as the javascript ID
 	// -------------------------------------------------------------------------
@@ -205,6 +209,9 @@ func (d * Display) NewAnalogValue(parent string, top int, left int, width int, h
 	return nil, err
 	}
 
+	av.Options = options
+	av.Styles = styles
+
 	// -------------------------------------------------------------------------
 	// add the object to with display's widget map.
 	// -------------------------------------------------------------------------
@@ -216,6 +223,53 @@ func (d * Display) NewAnalogValue(parent string, top int, left int, width int, h
 	// -------------------------------------------------------------------------
 	return av, nil
 }
+
+
+
+// -----------------------------------------------------------------------------
+// NewSVG()
+// -----------------------------------------------------------------------------
+func (d * Display) NewSVG(parent string, top int, left int, width int, height int, zIndex int, content string, 
+	options * map[string]string, styles * map[string]string) (*widget.SVG, error) {
+
+	// -------------------------------------------------------------------------
+	// Create the new object
+	// -------------------------------------------------------------------------
+	svg := new( widget.SVG)
+
+	svg.Widgets	= make([]widget.Widget, 0, 100)
+	svg.WidgetMap = make(map[string]int)
+
+	// -------------------------------------------------------------------------
+	// Create a unique ID for the object that will be used as the javascript ID
+	// -------------------------------------------------------------------------
+	displayID := fmt.Sprintf("svg_%d", len(d.WidgetMap))
+	svg.DisplayID = displayID
+
+	// -------------------------------------------------------------------------
+	// Parse the required parameters
+	// -------------------------------------------------------------------------
+	err := svg.Req.Parse(parent, top, left, width, height, zIndex, content)
+	if err != nil {
+		return nil, err
+	}
+
+	// -------------------------------------------------------------------------
+	// add the object to with display's widgets slice and the widget map
+	// -------------------------------------------------------------------------
+	d.WidgetMap[svg.DisplayID] = len(d.Widgets)
+	d.Widgets = append(d.Widgets, svg)
+
+	// -------------------------------------------------------------------------
+	// return the new label and error code
+	// -------------------------------------------------------------------------
+	return svg, nil
+}
+
+
+
+
+
 
 
 

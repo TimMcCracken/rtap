@@ -59,6 +59,7 @@ type Widget interface {
 // ----------------------------------------------------------------------------
 // The following structure includes the variables that are required for all
 // widgets and are set wihthe display.New[widget] factory method.
+// ----------------------------------------------------------------------------
 type required struct {
 	parent		string
 	content		string

@@ -163,7 +163,7 @@ func SetAttributes( conn *websocket.Conn, targetID string, attributes map[string
 }
 
 // -----------------------------------------------------------------------------
-// SetAttributes() sends a command to create a new dom element and append it to
+// AppendElement() sends a command to create a new dom element and append it to
 // an existing element.
 // -----------------------------------------------------------------------------
 func AppendElement( conn *websocket.Conn, targetID string, tag string, attributes map[string]string) error {
@@ -187,6 +187,36 @@ func AppendElement( conn *websocket.Conn, targetID string, tag string, attribute
 	}
 	return nil
 }
+
+// -----------------------------------------------------------------------------
+// AppendElementNS() sends a command to create a new dom element with a 
+// namespace and append it to an existing element. This is first used for SVG
+// elements.
+// -----------------------------------------------------------------------------
+func AppendElementNS( conn *websocket.Conn, targetID string, namespace string, tag string, attributes map[string]string) error {
+	var msg message 
+
+	msg.Command = "AppendElementNS"
+	msg.TargetID = targetID
+	msg.Data = make(map[string]string)
+	msg.Data["tag"]=tag
+	msg.Data["namespace"]=namespace
+	maps.Copy( msg.Data, attributes)
+
+	jmsg, err := json.Marshal(&msg)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return err
+	}
+	err = conn.WriteMessage(1, []byte(jmsg))
+	if err != nil {
+		log.Println("Error writing JSON message:", err)
+		return err
+	}
+	return nil
+}
+
+
 
 // -----------------------------------------------------------------------------
 // SetAttributes() sends a command to set multiple style properties on an a DOM 

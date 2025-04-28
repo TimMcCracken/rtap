@@ -8,6 +8,7 @@ var InitializeFunctionMap = function(functionMap){
     functionMap.set("SetDocumentTitle", setDocumentTitle);
     functionMap.set("SetAttributes", setAttributes);
     functionMap.set("AppendElement", appendElement);
+    functionMap.set("AppendElementNS", appendElementNS);
     functionMap.set("SetValue", setValue);
     functionMap.set("SetStyle", setStyle);
 }
@@ -53,14 +54,15 @@ var appendElement = function(msg){
     return
     }   
 
-    // Get the tag
+    // Create the new element
     const newElement = document.createElement(tag);
     if (newElement === null) {
-        console.log("Invalid tag:", tag );
+        console.log("Could not create tag:", tag );
         return;
     }
 
-    // Loop through the supplied attributes, but skipping 'tag'
+    // Loop through the supplied attributes, but skipping 'tag' and
+    // 'innerHTML'
     for (const key in msg.data) {
         if (key == "tag") {
             continue;
@@ -71,16 +73,130 @@ var appendElement = function(msg){
             continue;
         }
 
-
-        if (key in newElement) {
-            const value = msg.data[key];
-            newElement.setAttribute(key, value);
-        } else {
-            console.log(`Element has no attribute: ${key}`);    
-        }
+        const value = msg.data[key];
+        newElement.setAttribute(key, value);
     }
     target.appendChild(newElement);
 }
+
+
+// ----------------------------------------------------------------------------
+// appendElementNS()
+// ----------------------------------------------------------------------------
+var appendElementNS = function(msg){
+
+    // Check that the 'targetID' field exists in the message
+    targetID = msg.targetID
+    if (targetID === null) {
+        console.log("Required field [targetID] not found in message:", msg);
+        return
+    }   
+    
+    // Get the target element
+    target = document.getElementById(targetID);
+    if (target === null) {
+        console.log("Target element not found: ", targetID);
+        return
+    }
+
+    // Check that the 'tag' field exists in the message data
+    tag = msg.data["tag"];
+    if (tag === null) {
+        console.log("Required field [tag] not found in message:", msg);
+    return
+    }   
+
+    // Check that the 'namespace' field exists in the message data
+    namespace = msg.data["namespace"];
+    if (namespace === null) {
+        console.log("Required field [namespace] not found in message:", msg);
+    return
+    }   
+
+    // 
+    const newElement = document.createElementNS(namespace, tag);
+    if (newElement === null) {
+        console.log("Could not create namespace : tag:", namespace,": ", tag );
+        return;
+    }
+
+    // Loop through the supplied attributes, but skipping 'tag' and 'namespace'
+    for (const key in msg.data) {
+        if (key == "tag") {
+            continue;
+        }
+
+        if (key == "namespace") {
+            continue;
+        }
+//
+            const value = msg.data[key];
+            newElement.setAttribute(key, value);
+//        } else {
+//            console.log(`Element has no attribute: ${key}`);    
+//        }
+    }
+    console.log("appending:", tag)
+    target.appendChild(newElement);
+}
+// ----------------------------------------------------------------------------
+// appendElementNS()
+// ----------------------------------------------------------------------------
+var appendElementNS = function(msg){
+
+    // Check that the 'targetID' field exists in the message
+    targetID = msg.targetID
+    if (targetID === null) {
+        console.log("Required field [targetID] not found in message:", msg);
+        return
+    }   
+    
+    // Get the target element
+    target = document.getElementById(targetID);
+    if (target === null) {
+        console.log("Target element not found: ", targetID);
+        return
+    }
+
+    // Check that the 'tag' field exists in the message data
+    tag = msg.data["tag"];
+    if (tag === null) {
+        console.log("Required field [tag] not found in message:", msg);
+    return
+    }   
+
+    // Check that the 'namespace' field exists in the message data
+    namespace = msg.data["namespace"];
+    if (namespace === null) {
+        console.log("Required field [namespace] not found in message:", msg);
+    return
+    }   
+
+    // 
+    const newElement = document.createElementNS(namespace, tag);
+    if (newElement === null) {
+        console.log("Could not create namespace : tag:", namespace,": ", tag );
+        return;
+    }
+
+    // Loop through the supplied attributes, but skipping 'tag'
+    for (const key in msg.data) {
+        if (key == "tag") {
+            continue;
+        }
+
+        if (key == "namespace") {
+            continue;
+        }
+
+        const value = msg.data[key];
+        newElement.setAttribute(key, value);
+    }
+    console.log("appending:", tag)
+    target.appendChild(newElement);
+}
+
+
 
 // ----------------------------------------------------------------------------
 //setValue()

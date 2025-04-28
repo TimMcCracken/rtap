@@ -6,7 +6,7 @@
 package widget
 
 import (
-	_ "embed"
+//	_ "embed"
 	"fmt"
 	"rtap/hmi/domterm"
 	"time"
@@ -29,6 +29,11 @@ type DigitalClock struct {
 	// lastValue is used to decide if we need to send again. Handy for dates
 	// and time without seconds, etc.
 	lastValue	string 
+
+	Options 	* map[string]string
+	Styles 		* map[string]string
+
+
 }
 
 // -----------------------------------------------------------------------------
@@ -54,8 +59,13 @@ func RegisterDigitalClockType(L *lua.LState) {
 var digitalClockMethods = map[string]lua.LGFunction{
  //   "newLabel": luaNewLabel,
  //   "show" : luaShow,
+    "test" : luaTest,
 }
 
+func luaTest(L *lua.LState) int {
+	fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+	return 0
+}
 
 // ----------------------------------------------------------------------------
 // dcoL get the following defauilt format from the database
@@ -73,8 +83,6 @@ func init() {
 
 func (dc * DigitalClock) Show(conn *websocket.Conn) error {
 
-
-
 	if dc.Req.content == "" {
 		dc.timezone = "Local"
 	} else {
@@ -91,8 +99,6 @@ func (dc * DigitalClock) Show(conn *websocket.Conn) error {
 		}
 	}
 
-
-
 	// Append the basic element
 	attributes := make(map[string]string)
 	attributes["title"] = dc.Title
@@ -102,7 +108,7 @@ func (dc * DigitalClock) Show(conn *websocket.Conn) error {
 
 	attributes["onclick"] = "sendMouseEvent(event)"
 
-	domterm.AppendElement(conn, "body","input", attributes)
+	domterm.AppendElement(conn, dc.Req.parent,"input", attributes)
 	clear(attributes)
 
 	// set the styles.

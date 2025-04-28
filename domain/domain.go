@@ -85,7 +85,6 @@ func (domain * Domain) Start() {
 	domain.bufferPool.Start()
 	domain.messageQueue.Start(&domain.bufferPool)
 	domain.handlerMessageQueue.Start(&domain.bufferPool)
-
 	domain.metronome.Start(&domain.bufferPool, &domain.messageQueue)
  
 	// temporarily not started
@@ -273,7 +272,7 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 
 
 	// -------------------------------------------------------------------------
-	// Upgrade the connection to a wenspcket
+	// Upgrade the connection to a webspcket.
 	// -------------------------------------------------------------------------
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -282,24 +281,29 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-
-
 	// -------------------------------------------------------------------------
-	// Create a display object
+	// Create a display object.
 	// -------------------------------------------------------------------------
 	display := hmi.NewDisplay()
 	
-
 	// -------------------------------------------------------------------------
-	// Create a lua state
+	// Create a lua state and register all the object types.
 	// -------------------------------------------------------------------------
 	L := lua.NewState()
 	defer L.Close()
 
 	hmi.RegisterDisplayType(L)
+
+	// HTML display object types
 	widget.RegisterLabelType(L)
 	widget.RegisterDigitalClockType(L)
 	widget.RegisterAnalogValueType(L)
+
+	// SVG display objecttype
+	widget.RegisterSVGType(L)
+	widget.RegisterSVGCircleType(L)
+	widget.RegisterSVGRectangleType(L)
+
 
 	// -------------------------------------------------------------------------
 	// Add the display to Lua as a global variable
@@ -330,7 +334,7 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 
 	// -------------------------------------------------------------------------
 	// The following is an anonymous go routine that recives messages from the
-	// web socket and foreads them to the client channel.
+	// web socket and forwards them to the client channel.
 	// -------------------------------------------------------------------------
 	go func(){
 		for {
@@ -412,12 +416,10 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 	// Create a goroutine to update the digital clocks if any
 	// -------------------------------------------------------------------------
 	go func(){
-
 		for {
 			tickChan <- 0
 			time.Sleep(1 * time.Second)
 		}
-
 	}()
 
 
@@ -435,7 +437,7 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("received tick %v\n", time.Now().Unix())
 
 				for _, ndx := range display.ClockMap {
-					err = dc.Widgets[ndx].UpdateRealtime(conn)
+					err = display.Widgets[ndx].UpdateRealtime(conn)
 					if err != nil {
 						fmt.Printf("display error: %v\n", err)
 						return
@@ -467,11 +469,11 @@ func (domain * Domain)DisplayHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("Error parsing target id\n")
 			} else {
 		
-				widget, ok := display.WidgetMap[target_id.(string)]
+				ndx, ok := display.WidgetMap[target_id.(string)]
 				if ok == false {
 					fmt.Printf("Error parsing target id\n")
 				} else {
-					widget.ClientEvent(conn, data)
+					display.Widgets[ndx].ClientEvent(conn, data)
 				}
 			}
 		}			

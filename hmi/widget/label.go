@@ -21,11 +21,15 @@ import (
 
 type Label struct {
 	DisplayID	string 
-	Req 		required // parameters required for all widgets
+	Req 		required // parameters required for all HTML widgets
 	Title		string
 	// lastValue is used to decide if we need to send again. Handy for dates
 	// and time without seconds, etc.
 	lastValue	string 
+
+	Options 	* map[string]string
+	Styles 		* map[string]string
+
 }
 
 
@@ -93,7 +97,7 @@ func (lbl * Label) Show(conn *websocket.Conn) error {
 	attributes["tag"] 	= "output"
 	attributes["id"] 	= lbl.DisplayID
 	attributes["style"] = "position: absolute;"
-	domterm.AppendElement(conn, "body","input", attributes)
+	domterm.AppendElement(conn, lbl.Req.parent,"input", attributes)
 
 	clear(attributes)
 
@@ -112,7 +116,6 @@ func (lbl * Label) Show(conn *websocket.Conn) error {
 		attributes["width"]	= fmt.Sprintf("%dpx", lbl.Req.width)
 	}
 	domterm.SetStyle(conn, lbl.DisplayID, attributes)
-
 	domterm.SetValue(conn, lbl.DisplayID, lbl.Req.content)
 
 	return nil

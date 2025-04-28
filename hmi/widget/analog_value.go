@@ -63,6 +63,8 @@ type AnalogValue struct {
 	stateBackground string
 	unackAlarm		bool	// 'true' sets flashing mode
 
+	Options 	* map[string]string
+	Styles 		* map[string]string
 }
 
 
@@ -96,17 +98,6 @@ var analogValueMethods = map[string]lua.LGFunction{
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 func (av *AnalogValue) Show(conn *websocket.Conn) error {
 
 	// Append the basic element
@@ -116,7 +107,7 @@ func (av *AnalogValue) Show(conn *websocket.Conn) error {
 	attributes["id"] 	= av.DisplayID
 	attributes["style"] = "position: absolute;"
 
-	domterm.AppendElement(conn, "body","input", attributes)
+	domterm.AppendElement(conn, av.Req.parent,"input", attributes)
 	clear(attributes)
 
 	// set the styles.
